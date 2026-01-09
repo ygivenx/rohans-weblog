@@ -29,34 +29,32 @@ jobs:
           version: "latest"
       
       - name: Install dependencies
-        run: |
-          uv pip install -e .
-          uv pip install pytest pytest-django black
+        run: uv sync --dev
       
       - name: Run migrations
         run: |
-          python manage.py migrate --check || python manage.py migrate
+          uv run python manage.py migrate --check || uv run python manage.py migrate
         env:
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           DJANGO_DEBUG: "True"
           DJANGO_ALLOWED_HOSTS: localhost
       
       - name: Collect static files
-        run: python manage.py collectstatic --noinput
+        run: uv run python manage.py collectstatic --noinput
         env:
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           DJANGO_DEBUG: "True"
           DJANGO_ALLOWED_HOSTS: localhost
       
       - name: Run Django checks
-        run: python manage.py check --deploy
+        run: uv run python manage.py check --deploy
         env:
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           DJANGO_DEBUG: "False"
           DJANGO_ALLOWED_HOSTS: localhost
       
       - name: Check code formatting (black)
-        run: black --check --diff .
+        run: uv run black --check --diff .
 
   deploy:
     name: Deploy to Render
