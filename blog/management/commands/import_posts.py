@@ -17,43 +17,45 @@ from blog.models import BlogPost, Tag
 
 
 class Command(BaseCommand):
-    help = 'Import markdown posts from content/posts/ directory'
+    help = "Import markdown posts from content/posts/ directory"
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--update',
-            action='store_true',
-            help='Update existing posts if they already exist (by slug)',
+            "--update",
+            action="store_true",
+            help="Update existing posts if they already exist (by slug)",
         )
         parser.add_argument(
-            '--skip-existing',
-            action='store_true',
-            help='Skip posts that already exist (by slug)',
+            "--skip-existing",
+            action="store_true",
+            help="Skip posts that already exist (by slug)",
         )
         parser.add_argument(
-            '--posts-dir',
+            "--posts-dir",
             type=str,
-            default='content/posts',
-            help='Directory containing markdown posts (default: content/posts)',
+            default="content/posts",
+            help="Directory containing markdown posts (default: content/posts)",
         )
 
     def handle(self, *args, **options):
-        posts_dir = Path(settings.BASE_DIR) / options['posts_dir']
-        
+        posts_dir = Path(settings.BASE_DIR) / options["posts_dir"]
+
         if not posts_dir.exists():
-            raise CommandError(f'Posts directory does not exist: {posts_dir}')
-        
+            raise CommandError(f"Posts directory does not exist: {posts_dir}")
+
         if not posts_dir.is_dir():
-            raise CommandError(f'Posts path is not a directory: {posts_dir}')
+            raise CommandError(f"Posts path is not a directory: {posts_dir}")
 
         # Get all markdown files
-        markdown_files = list(posts_dir.glob('*.md'))
-        
+        markdown_files = list(posts_dir.glob("*.md"))
+
         if not markdown_files:
-            self.stdout.write(self.style.WARNING(f'No markdown files found in {posts_dir}'))
+            self.stdout.write(
+                self.style.WARNING(f"No markdown files found in {posts_dir}")
+            )
             return
 
-        self.stdout.write(f'Found {len(markdown_files)} markdown file(s) to import')
+        self.stdout.write(f"Found {len(markdown_files)} markdown file(s) to import")
 
         imported_count = 0
         updated_count = 0
@@ -63,41 +65,41 @@ class Command(BaseCommand):
         for md_file in markdown_files:
             try:
                 result = self.import_post(md_file, options)
-                if result == 'imported':
+                if result == "imported":
                     imported_count += 1
-                elif result == 'updated':
+                elif result == "updated":
                     updated_count += 1
-                elif result == 'skipped':
+                elif result == "skipped":
                     skipped_count += 1
             except Exception as e:
                 error_count += 1
                 self.stdout.write(
-                    self.style.ERROR(f'Error importing {md_file.name}: {str(e)}')
+                    self.style.ERROR(f"Error importing {md_file.name}: {str(e)}")
                 )
 
         # Summary
-        self.stdout.write(self.style.SUCCESS('\n=== Import Summary ==='))
-        self.stdout.write(f'Imported: {imported_count}')
-        self.stdout.write(f'Updated: {updated_count}')
-        self.stdout.write(f'Skipped: {skipped_count}')
+        self.stdout.write(self.style.SUCCESS("\n=== Import Summary ==="))
+        self.stdout.write(f"Imported: {imported_count}")
+        self.stdout.write(f"Updated: {updated_count}")
+        self.stdout.write(f"Skipped: {skipped_count}")
         if error_count > 0:
-            self.stdout.write(self.style.ERROR(f'Errors: {error_count}'))
+            self.stdout.write(self.style.ERROR(f"Errors: {error_count}"))
 
     def import_post(self, md_file, options):
         """Import a single markdown file as a BlogPost."""
-        self.stdout.write(f'Processing: {md_file.name}')
+        self.stdout.write(f"Processing: {md_file.name}")
 
         # Read and parse the markdown file
-        with open(md_file, 'r', encoding='utf-8') as f:
+        with open(md_file, "r", encoding="utf-8") as f:
             post = frontmatter.load(f)
 
         # Extract frontmatter data
-        title = post.metadata.get('title', '')
+        title = post.metadata.get("title", "")
         if not title:
-            raise ValueError(f'Missing title in frontmatter for {md_file.name}')
+            raise ValueError(f"Missing title in frontmatter for {md_file.name}")
 
-        date_str = post.metadata.get('date', '')
-        tags = post.metadata.get('tags', [])
+        date_str = post.metadata.get("date", "")
+        tags = post.metadata.get("tags", [])
         content = post.content.strip()
 
         # Parse date
@@ -106,7 +108,7 @@ class Command(BaseCommand):
             try:
                 # Try parsing as YYYY-MM-DD format
                 if isinstance(date_str, str):
-                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
                     # Make it timezone-aware
                     published_date = timezone.make_aware(
                         datetime.combine(date_obj.date(), datetime.min.time())
@@ -114,10 +116,16 @@ class Command(BaseCommand):
                 else:
                     # If it's already a date/datetime object
                     if isinstance(date_str, datetime):
-                        published_date = timezone.make_aware(date_str) if timezone.is_naive(date_str) else date_str
+                        published_date = (
+                            timezone.make_aware(date_str)
+                            if timezone.is_naive(date_str)
+                            else date_str
+                        )
             except (ValueError, TypeError) as e:
                 self.stdout.write(
-                    self.style.WARNING(f'Could not parse date "{date_str}" for {md_file.name}: {e}')
+                    self.style.WARNING(
+                        f'Could not parse date "{date_str}" for {md_file.name}: {e}'
+                    )
                 )
 
         # Generate slug from title
@@ -132,19 +140,25 @@ class Command(BaseCommand):
 
         # Handle existing posts
         if existing_post:
-            if options['skip_existing']:
-                self.stdout.write(self.style.WARNING(f'  Skipping existing post: {title}'))
-                return 'skipped'
-            elif options['update']:
-                self.stdout.write(f'  Updating existing post: {title}')
+            if options["skip_existing"]:
+                self.stdout.write(
+                    self.style.WARNING(f"  Skipping existing post: {title}")
+                )
+                return "skipped"
+            elif options["update"]:
+                self.stdout.write(f"  Updating existing post: {title}")
                 blog_post = existing_post
             else:
                 # Default: skip if exists and no flags set
-                self.stdout.write(self.style.WARNING(f'  Post already exists: {title} (use --update to overwrite or --skip-existing to skip)'))
-                return 'skipped'
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  Post already exists: {title} (use --update to overwrite or --skip-existing to skip)"
+                    )
+                )
+                return "skipped"
         else:
             blog_post = BlogPost()
-            self.stdout.write(f'  Creating new post: {title}')
+            self.stdout.write(f"  Creating new post: {title}")
 
         # Set post fields
         blog_post.title = title
@@ -162,15 +176,14 @@ class Command(BaseCommand):
                     continue
                 # Get or create tag
                 tag, created = Tag.objects.get_or_create(
-                    name=tag_name,
-                    defaults={'slug': slugify(tag_name)}
+                    name=tag_name, defaults={"slug": slugify(tag_name)}
                 )
                 tag_objects.append(tag)
                 if created:
-                    self.stdout.write(f'    Created tag: {tag_name}')
+                    self.stdout.write(f"    Created tag: {tag_name}")
 
             # Set tags (this replaces existing tags)
             blog_post.tags.set(tag_objects)
-            self.stdout.write(f'    Added {len(tag_objects)} tag(s)')
+            self.stdout.write(f"    Added {len(tag_objects)} tag(s)")
 
-        return 'updated' if existing_post else 'imported'
+        return "updated" if existing_post else "imported"

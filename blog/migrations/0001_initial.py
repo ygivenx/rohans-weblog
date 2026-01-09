@@ -7,69 +7,120 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Tag',
+            name="Tag",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50, unique=True)),
-                ('slug', models.SlugField(blank=True, unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=50, unique=True)),
+                ("slug", models.SlugField(blank=True, unique=True)),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='Bookmark',
+            name="Bookmark",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('url', models.URLField()),
-                ('title', models.CharField(max_length=200)),
-                ('description', models.TextField(blank=True)),
-                ('created_date', models.DateTimeField(auto_now_add=True)),
-                ('via_url', models.URLField(blank=True, help_text='URL where this was found', null=True)),
-                ('tags', models.ManyToManyField(blank=True, related_name='bookmarks', to='blog.tag')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("url", models.URLField()),
+                ("title", models.CharField(max_length=200)),
+                ("description", models.TextField(blank=True)),
+                ("created_date", models.DateTimeField(auto_now_add=True)),
+                (
+                    "via_url",
+                    models.URLField(
+                        blank=True, help_text="URL where this was found", null=True
+                    ),
+                ),
+                (
+                    "tags",
+                    models.ManyToManyField(
+                        blank=True, related_name="bookmarks", to="blog.tag"
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_date'],
+                "ordering": ["-created_date"],
             },
         ),
         migrations.CreateModel(
-            name='BlogPost',
+            name="BlogPost",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('slug', models.SlugField(blank=True, max_length=200, unique=True)),
-                ('content', models.TextField(help_text='Markdown content')),
-                ('published_date', models.DateTimeField(blank=True, null=True)),
-                ('created_date', models.DateTimeField(auto_now_add=True)),
-                ('updated_date', models.DateTimeField(auto_now=True)),
-                ('is_published', models.BooleanField(default=False)),
-                ('tags', models.ManyToManyField(blank=True, related_name='blog_posts', to='blog.tag')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=200)),
+                ("slug", models.SlugField(blank=True, max_length=200, unique=True)),
+                ("content", models.TextField(help_text="Markdown content")),
+                ("published_date", models.DateTimeField(blank=True, null=True)),
+                ("created_date", models.DateTimeField(auto_now_add=True)),
+                ("updated_date", models.DateTimeField(auto_now=True)),
+                ("is_published", models.BooleanField(default=False)),
+                (
+                    "tags",
+                    models.ManyToManyField(
+                        blank=True, related_name="blog_posts", to="blog.tag"
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Blog Post',
-                'verbose_name_plural': 'Blog Posts',
-                'ordering': ['-published_date', '-created_date'],
+                "verbose_name": "Blog Post",
+                "verbose_name_plural": "Blog Posts",
+                "ordering": ["-published_date", "-created_date"],
             },
         ),
         migrations.CreateModel(
-            name='TIL',
+            name="TIL",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('slug', models.SlugField(blank=True, max_length=200, unique=True)),
-                ('content', models.TextField(help_text='Markdown content')),
-                ('created_date', models.DateTimeField(auto_now_add=True)),
-                ('tags', models.ManyToManyField(blank=True, related_name='tils', to='blog.tag')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=200)),
+                ("slug", models.SlugField(blank=True, max_length=200, unique=True)),
+                ("content", models.TextField(help_text="Markdown content")),
+                ("created_date", models.DateTimeField(auto_now_add=True)),
+                (
+                    "tags",
+                    models.ManyToManyField(
+                        blank=True, related_name="tils", to="blog.tag"
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'TIL',
-                'verbose_name_plural': 'TILs',
-                'ordering': ['-created_date'],
+                "verbose_name": "TIL",
+                "verbose_name_plural": "TILs",
+                "ordering": ["-created_date"],
             },
         ),
     ]
