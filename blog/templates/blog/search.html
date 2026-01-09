@@ -1,0 +1,76 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Search{% endblock %}
+
+{% block content %}
+<h2>Search</h2>
+
+<form method="get" action="{% url 'blog:search' %}" style="margin-bottom: 30px;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search..." style="padding: 10px; width: 70%; font-size: 1em;">
+    <button type="submit" style="padding: 10px 20px; font-size: 1em; cursor: pointer;">Search</button>
+</form>
+
+{% if query or tag %}
+    <h3>Search Results</h3>
+    
+    {% if tag %}
+        <p>Filtered by tag: <strong>{{ tag.name }}</strong></p>
+    {% endif %}
+
+    {% if has_results %}
+        {% if results.posts %}
+        <h4>Blog Posts ({{ results.posts|length }})</h4>
+        <ul class="post-list">
+            {% for post in results.posts %}
+            <li class="post-item">
+                <h3 class="post-title">
+                    <a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a>
+                </h3>
+                <div class="post-meta">
+                    {% if post.published_date %}
+                        Published: {{ post.published_date|date:"F d, Y" }}
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if results.tils %}
+        <h4>TIL Entries ({{ results.tils|length }})</h4>
+        <ul class="post-list">
+            {% for til in results.tils %}
+            <li class="post-item">
+                <h3 class="post-title">
+                    <a href="{% url 'blog:til_detail' til.slug %}">{{ til.title }}</a>
+                </h3>
+                <div class="post-meta">
+                    Created: {{ til.created_date|date:"F d, Y" }}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if results.bookmarks %}
+        <h4>Bookmarks ({{ results.bookmarks|length }})</h4>
+        <ul class="post-list">
+            {% for bookmark in results.bookmarks %}
+            <li class="post-item">
+                <h3 class="post-title">
+                    <a href="{{ bookmark.url }}" target="_blank" rel="noopener noreferrer">{{ bookmark.title }}</a>
+                </h3>
+                {% if bookmark.description %}
+                <div class="post-excerpt">{{ bookmark.description }}</div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    {% else %}
+        <p>No results found.</p>
+    {% endif %}
+{% else %}
+    <p>Enter a search query above to search across blog posts, TIL entries, and bookmarks.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+# This file is auto-generated from pyproject.toml
+# For Render deployment compatibility
+# To regenerate: uv pip compile pyproject.toml -o requirements.txt
+
+# Core dependencies are in pyproject.toml
+# Render will use pyproject.toml, but this file exists for compatibility

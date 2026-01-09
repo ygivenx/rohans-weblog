@@ -1,0 +1,29 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ til.title }}{% endblock %}
+
+{% block content %}
+<article>
+    <h1>{{ til.title }}</h1>
+    
+    <div class="post-meta">
+        Created: {{ til.created_date|date:"F d, Y" }}
+    </div>
+
+    {% if til.tags.all %}
+    <div class="tags">
+        {% for tag in til.tags.all %}
+            <span class="tag">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="content">
+        {{ til.content_html|safe }}
+    </div>
+</article>
+
+<p style="margin-top: 30px;">
+    <a href="{% url 'blog:til_list' %}">&larr; Back to TIL</a>
+</p>
+{% endblock %}

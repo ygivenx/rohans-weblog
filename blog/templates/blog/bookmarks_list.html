@@ -1,0 +1,55 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Bookmarks{% endblock %}
+
+{% block content %}
+<h2>Bookmarks</h2>
+
+{% if page_obj %}
+    <ul class="post-list">
+        {% for bookmark in page_obj %}
+        <li class="post-item">
+            <h3 class="post-title">
+                <a href="{{ bookmark.url }}" target="_blank" rel="noopener noreferrer">{{ bookmark.title }}</a>
+            </h3>
+            {% if bookmark.description %}
+            <div class="post-excerpt">{{ bookmark.description }}</div>
+            {% endif %}
+            <div class="post-meta">
+                Saved: {{ bookmark.created_date|date:"F d, Y" }}
+                {% if bookmark.via_url %}
+                    | Via: <a href="{{ bookmark.via_url }}" target="_blank" rel="noopener noreferrer">link</a>
+                {% endif %}
+            </div>
+            {% if bookmark.tags.all %}
+            <div class="tags">
+                {% for tag in bookmark.tags.all %}
+                    <span class="tag">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+{% else %}
+    <p>No bookmarks yet.</p>
+{% endif %}
+{% endblock %}
