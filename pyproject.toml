@@ -23,3 +23,6 @@ dev = [
     "pytest>=7.4.0",
     "pytest-django>=4.5.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["rohans_weblog*", "blog*"]
