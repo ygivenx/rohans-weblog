@@ -10,6 +10,7 @@ dependencies = [
     "gunicorn>=21.0",
     "markdown>=3.5",
     "psycopg2-binary>=2.9.0",
+    "whitenoise[brotli]>=6.6.0",
     "pymdown-extensions>=10.0",
     "python-frontmatter>=1.0",
     "pygments>=2.0",
