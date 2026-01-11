@@ -20,9 +20,6 @@ services:
           property: connectionString
     healthCheckPath: /
     autoDeploy: true
-    customDomains:
-      - rohansweblog.com
-      - www.rohansweblog.com
 
 databases:
   - name: rohans-weblog-db
