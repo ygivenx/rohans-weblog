@@ -23,6 +23,6 @@ services:
 
 databases:
   - name: rohans-weblog-db
-    plan: starter
+    plan: basic-256mb
     databaseName: rohans_weblog
     user: rohans_weblog_user
