@@ -1,27 +1,28 @@
 from django.contrib import admin
 from django import forms
+from martor.widgets import AdminMartorWidget
 from .models import BlogPost, TIL, Bookmark, Tag
 
 
 class BlogPostAdminForm(forms.ModelForm):
-    """Custom form for BlogPost with larger textarea for markdown content."""
+    """Custom form for BlogPost with Martor markdown editor."""
 
     class Meta:
         model = BlogPost
         fields = "__all__"
         widgets = {
-            "content": forms.Textarea(attrs={"rows": 20, "cols": 80}),
+            "content": AdminMartorWidget(),
         }
 
 
 class TILAdminForm(forms.ModelForm):
-    """Custom form for TIL with larger textarea for markdown content."""
+    """Custom form for TIL with Martor markdown editor."""
 
     class Meta:
         model = TIL
         fields = "__all__"
         widgets = {
-            "content": forms.Textarea(attrs={"rows": 15, "cols": 80}),
+            "content": AdminMartorWidget(),
         }
 
 

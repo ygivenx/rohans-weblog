@@ -2,36 +2,36 @@
 #    uv pip compile pyproject.toml -o requirements.txt
 asgiref==3.11.0
     # via django
-black==25.12.0
-    # via rohans-weblog (pyproject.toml)
 bleach==6.3.0
-    # via rohans-weblog (pyproject.toml)
+    # via
+    #   rohans-weblog (pyproject.toml)
+    #   martor
 brotli==1.2.0
     # via whitenoise
-click==8.3.1
-    # via black
+certifi==2026.1.4
+    # via requests
+charset-normalizer==3.4.4
+    # via requests
 dj-database-url==3.1.0
     # via rohans-weblog (pyproject.toml)
 django==6.0.1
     # via
     #   rohans-weblog (pyproject.toml)
     #   dj-database-url
+    #   martor
 gunicorn==23.0.0
     # via rohans-weblog (pyproject.toml)
+idna==3.11
+    # via requests
 markdown==3.10
     # via
     #   rohans-weblog (pyproject.toml)
+    #   martor
     #   pymdown-extensions
-mypy-extensions==1.1.0
-    # via black
+martor==1.7.16
+    # via rohans-weblog (pyproject.toml)
 packaging==25.0
-    # via
-    #   black
-    #   gunicorn
-pathspec==1.0.3
-    # via black
-platformdirs==4.5.1
-    # via black
+    # via gunicorn
 psycopg2-binary==2.9.11
     # via rohans-weblog (pyproject.toml)
 pygments==2.19.2
@@ -40,19 +40,27 @@ pymdown-extensions==10.20
     # via rohans-weblog (pyproject.toml)
 python-frontmatter==1.1.0
     # via rohans-weblog (pyproject.toml)
-pytokens==0.3.0
-    # via black
 pyyaml==6.0.3
     # via
     #   pymdown-extensions
     #   python-frontmatter
+requests==2.32.5
+    # via martor
 sqlparse==0.5.5
     # via django
 tinycss2==1.4.0
     # via bleach
+tzdata==2025.3
+    # via martor
+urllib3==2.6.3
+    # via
+    #   martor
+    #   requests
 webencodings==0.5.1
     # via
     #   bleach
     #   tinycss2
 whitenoise==6.11.0
     # via rohans-weblog (pyproject.toml)
+zipp==3.23.0
+    # via martor

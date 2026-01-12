@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "martor",
     "blog",
 ]
 
@@ -188,3 +189,38 @@ if not DEBUG:
     # Other security headers
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+
+# Martor (Markdown Editor) Configuration
+MARTOR_ENABLE_CONFIGS = {
+    "emoji": "true",
+    "imgur": "true",
+    "mention": "false",
+    "jquery": "true",
+    "living": "false",
+    "spellcheck": "false",
+    "hljs": "true",
+}
+
+MARTOR_TOOLBAR_BUTTONS = [
+    "bold",
+    "italic",
+    "horizontal",
+    "heading",
+    "pre-code",
+    "blockquote",
+    "unordered-list",
+    "ordered-list",
+    "link",
+    "image-link",
+    "image-upload",
+    "emoji",
+    "direct-mention",
+    "toggle-resolve-suggestion",
+    "toggle-maximize",
+    "help",
+]
+
+# Imgur API for image uploads (free, no account needed for anonymous uploads)
+MARTOR_UPLOAD_URL = "/martor/uploader/"
+MARTOR_IMGUR_CLIENT_ID = os.environ.get("IMGUR_CLIENT_ID", "")
+MARTOR_IMGUR_API_KEY = os.environ.get("IMGUR_API_KEY", "")
