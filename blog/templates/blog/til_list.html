@@ -9,12 +9,10 @@
     <ul class="post-list">
         {% for til in page_obj %}
         <li class="post-item">
+            <div class="post-date">{{ til.created_date|date:"jS F Y" }}</div>
             <h3 class="post-title">
                 <a href="{% url 'blog:til_detail' til.slug %}">{{ til.title }}</a>
             </h3>
-            <div class="post-meta">
-                Created: {{ til.created_date|date:"F d, Y" }}
-            </div>
             {% if til.tags.all %}
             <div class="tags">
                 {% for tag in til.tags.all %}

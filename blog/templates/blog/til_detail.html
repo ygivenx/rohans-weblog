@@ -6,9 +6,7 @@
 <article>
     <h1>{{ til.title }}</h1>
     
-    <div class="post-meta">
-        Created: {{ til.created_date|date:"F d, Y" }}
-    </div>
+    <div class="post-date">{{ til.created_date|date:"jS F Y" }}</div>
 
     {% if til.tags.all %}
     <div class="tags">

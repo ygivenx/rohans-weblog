@@ -6,14 +6,14 @@
 <article>
     <h1>{{ post.title }}</h1>
     
-    <div class="post-meta">
+    <div class="post-date">
         {% if post.published_date %}
-            Published: {{ post.published_date|date:"F d, Y" }}
+            {{ post.published_date|date:"jS F Y" }}
         {% else %}
-            Created: {{ post.created_date|date:"F d, Y" }}
+            {{ post.created_date|date:"jS F Y" }}
         {% endif %}
         {% if post.updated_date != post.created_date %}
-            | Updated: {{ post.updated_date|date:"F d, Y" }}
+            &mdash; Updated: {{ post.updated_date|date:"jS F Y" }}
         {% endif %}
     </div>
 
@@ -30,7 +30,7 @@
     </div>
 </article>
 
-<p style="margin-top: 30px;">
+<p style="margin-top: 24px;">
     <a href="{% url 'blog:index' %}">&larr; Back to posts</a>
 </p>
 {% endblock %}

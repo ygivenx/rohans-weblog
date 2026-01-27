@@ -6,7 +6,7 @@
     <title>{% block title %}Rohan Singh's Weblog{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
         MathJax = {
             tex: {
@@ -27,139 +27,155 @@
             box-sizing: border-box;
         }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            line-height: 1.55;
+            color: #000;
             background: #fff;
             font-size: 16px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+        }
+        a {
+            color: #195f00;
+            text-decoration: underline;
+        }
+        a:hover {
+            color: #003d00;
         }
         .container {
-            max-width: 800px;
+            max-width: 700px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 20px 15px;
         }
         header {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        header h1 {
+            font-size: 1.8em;
+            margin-bottom: 2px;
+            font-weight: normal;
+        }
+        header h1 a {
+            color: #000;
+            text-decoration: none;
+        }
+        header h1 a:hover {
+            text-decoration: underline;
+        }
+        .site-description {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 8px;
         }
         nav {
-            margin-top: 20px;
+            margin-top: 6px;
+            font-size: 0.95em;
         }
         nav a {
-            margin-right: 20px;
-            text-decoration: none;
-            color: #666;
-        }
-        nav a:hover {
-            color: #000;
-        }
-        h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
+            margin-right: 12px;
+            color: #195f00;
         }
         h2 {
-            font-size: 1.5em;
-            margin-top: 30px;
-            margin-bottom: 15px;
+            font-size: 1.3em;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            font-weight: bold;
         }
         .post-list {
             list-style: none;
         }
         .post-item {
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #e8e8e8;
         }
         .post-item:last-child {
             border-bottom: none;
         }
+        .post-date {
+            color: #666;
+            font-size: 0.85em;
+            font-family: Verdana, Geneva, sans-serif;
+        }
         .post-title {
-            font-size: 1.5em;
-            margin-bottom: 10px;
+            font-size: 1.15em;
+            margin-bottom: 2px;
+            font-weight: normal;
+            font-family: Georgia, 'Times New Roman', Times, serif;
         }
         .post-title a {
-            text-decoration: none;
-            color: #000;
-        }
-        .post-title a:hover {
-            text-decoration: underline;
+            color: #195f00;
         }
         .post-meta {
             color: #666;
-            font-size: 0.9em;
-            margin-bottom: 10px;
+            font-size: 0.85em;
+            font-family: Verdana, Geneva, sans-serif;
+            margin-bottom: 4px;
         }
         .post-excerpt {
-            color: #555;
+            color: #333;
+            font-size: 0.95em;
+            margin-top: 4px;
         }
         .tags {
-            margin-top: 10px;
+            margin-top: 4px;
         }
         .tag {
-            display: inline-block;
-            background: #f0f0f0;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 0.85em;
-            margin-right: 5px;
-            color: #666;
+            display: inline;
+            font-size: 0.8em;
+            font-family: Verdana, Geneva, sans-serif;
+            color: #195f00;
+        }
+        .tag::after {
+            content: " ";
         }
         .pagination {
-            margin-top: 30px;
-            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9em;
         }
         .pagination a {
-            margin: 0 5px;
-            padding: 5px 10px;
-            text-decoration: none;
-            border: 1px solid #ddd;
-            border-radius: 3px;
+            margin-right: 8px;
+            color: #195f00;
         }
         .pagination .current {
-            background: #000;
-            color: #fff;
+            font-weight: bold;
+            color: #000;
         }
         footer {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
-            text-align: center;
+            margin-top: 40px;
+            padding-top: 12px;
+            border-top: 1px solid #ccc;
             color: #666;
+            font-size: 0.85em;
+            font-family: Verdana, Geneva, sans-serif;
         }
         .content {
-            margin-top: 20px;
-            line-height: 1.8;
+            margin-top: 16px;
+            line-height: 1.7;
         }
         /* Headings */
         .content h1 {
-            font-size: 2em;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            font-weight: bold;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
-        .content h2 {
-            font-size: 1.5em;
-            margin-top: 25px;
+            font-size: 1.6em;
+            margin-top: 28px;
             margin-bottom: 12px;
             font-weight: bold;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
         }
-        .content h3 {
-            font-size: 1.25em;
-            margin-top: 20px;
+        .content h2 {
+            font-size: 1.35em;
+            margin-top: 24px;
             margin-bottom: 10px;
             font-weight: bold;
         }
-        .content h4 {
-            font-size: 1.1em;
-            margin-top: 15px;
+        .content h3 {
+            font-size: 1.15em;
+            margin-top: 20px;
             margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .content h4 {
+            font-size: 1.05em;
+            margin-top: 16px;
+            margin-bottom: 6px;
             font-weight: bold;
         }
         .content h5, .content h6 {
@@ -178,7 +194,7 @@
             padding-left: 2em;
         }
         .content li {
-            margin: 0.5em 0;
+            margin: 0.4em 0;
         }
         .content ul {
             list-style-type: disc;
@@ -187,39 +203,38 @@
             list-style-type: decimal;
         }
         .content ul ul, .content ol ol, .content ul ol, .content ol ul {
-            margin-top: 0.5em;
-            margin-bottom: 0.5em;
+            margin-top: 0.3em;
+            margin-bottom: 0.3em;
         }
         /* Links */
         .content a {
-            color: #0066cc;
+            color: #195f00;
             text-decoration: underline;
         }
         .content a:hover {
-            color: #004499;
+            color: #003d00;
         }
         /* Images */
         .content img {
             max-width: 100%;
             height: auto;
             margin: 1.5em 0;
-            border-radius: 4px;
         }
         /* Code blocks - Dark Mode */
         .content pre {
             background: #1e1e2e;
-            padding: 16px;
-            border-radius: 8px;
+            padding: 14px;
+            border-radius: 4px;
             overflow-x: auto;
             border: 1px solid #313244;
             margin: 1.5em 0;
             color: #cdd6f4;
         }
         .content code {
-            background: #1e1e2e;
-            color: #cdd6f4;
-            padding: 3px 7px;
-            border-radius: 4px;
+            background: #f4f4f4;
+            color: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
             font-size: 0.875em;
             font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Monaco', 'Consolas', monospace;
         }
@@ -231,10 +246,10 @@
         }
         /* Blockquotes */
         .content blockquote {
-            border-left: 4px solid #ddd;
+            border-left: 3px solid #ccc;
             margin: 1.5em 0;
             padding-left: 1em;
-            color: #666;
+            color: #555;
             font-style: italic;
         }
         .content blockquote p {
@@ -252,7 +267,7 @@
         .content table th,
         .content table td {
             border: 1px solid #ddd;
-            padding: 8px 12px;
+            padding: 6px 10px;
             text-align: left;
         }
         .content table th {
@@ -260,12 +275,12 @@
             font-weight: bold;
         }
         .content table tr:nth-child(even) {
-            background-color: #f9f9f9;
+            background-color: #fafafa;
         }
         /* Horizontal rules */
         .content hr {
             border: none;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid #ccc;
             margin: 2em 0;
         }
         /* Strong and emphasis */
@@ -279,8 +294,8 @@
         .content .codehilite {
             background: #1e1e2e;
             border: 1px solid #313244;
-            border-radius: 8px;
-            padding: 16px;
+            border-radius: 4px;
+            padding: 14px;
             margin: 1.5em 0;
             overflow-x: auto;
         }
@@ -298,69 +313,69 @@
 
         /* Pygments Syntax Highlighting - Dark Theme */
         .codehilite .hll { background-color: #45475a; }
-        .codehilite .c { color: #6c7086; font-style: italic; }  /* Comment */
-        .codehilite .err { color: #f38ba8; }  /* Error */
-        .codehilite .k { color: #cba6f7; font-weight: bold; }  /* Keyword */
-        .codehilite .o { color: #89dceb; }  /* Operator */
-        .codehilite .p { color: #cdd6f4; }  /* Punctuation */
-        .codehilite .ch { color: #6c7086; font-style: italic; }  /* Comment.Hashbang */
-        .codehilite .cm { color: #6c7086; font-style: italic; }  /* Comment.Multiline */
-        .codehilite .cp { color: #f9e2af; }  /* Comment.Preproc */
-        .codehilite .cpf { color: #6c7086; font-style: italic; }  /* Comment.PreprocFile */
-        .codehilite .c1 { color: #6c7086; font-style: italic; }  /* Comment.Single */
-        .codehilite .cs { color: #6c7086; font-style: italic; }  /* Comment.Special */
-        .codehilite .gd { color: #f38ba8; }  /* Generic.Deleted */
-        .codehilite .ge { font-style: italic; }  /* Generic.Emph */
-        .codehilite .gi { color: #a6e3a1; }  /* Generic.Inserted */
-        .codehilite .gs { font-weight: bold; }  /* Generic.Strong */
-        .codehilite .gu { color: #89dceb; font-weight: bold; }  /* Generic.Subheading */
-        .codehilite .kc { color: #cba6f7; font-weight: bold; }  /* Keyword.Constant */
-        .codehilite .kd { color: #cba6f7; font-weight: bold; }  /* Keyword.Declaration */
-        .codehilite .kn { color: #f38ba8; }  /* Keyword.Namespace */
-        .codehilite .kp { color: #cba6f7; }  /* Keyword.Pseudo */
-        .codehilite .kr { color: #cba6f7; font-weight: bold; }  /* Keyword.Reserved */
-        .codehilite .kt { color: #f9e2af; }  /* Keyword.Type */
-        .codehilite .m { color: #fab387; }  /* Literal.Number */
-        .codehilite .s { color: #a6e3a1; }  /* Literal.String */
-        .codehilite .na { color: #89b4fa; }  /* Name.Attribute */
-        .codehilite .nb { color: #f9e2af; }  /* Name.Builtin */
-        .codehilite .nc { color: #f9e2af; font-weight: bold; }  /* Name.Class */
-        .codehilite .no { color: #fab387; }  /* Name.Constant */
-        .codehilite .nd { color: #89dceb; }  /* Name.Decorator */
-        .codehilite .ni { color: #cdd6f4; }  /* Name.Entity */
-        .codehilite .ne { color: #f38ba8; font-weight: bold; }  /* Name.Exception */
-        .codehilite .nf { color: #89b4fa; }  /* Name.Function */
-        .codehilite .nl { color: #cdd6f4; }  /* Name.Label */
-        .codehilite .nn { color: #f9e2af; }  /* Name.Namespace */
-        .codehilite .nt { color: #f38ba8; }  /* Name.Tag */
-        .codehilite .nv { color: #cdd6f4; }  /* Name.Variable */
-        .codehilite .ow { color: #89dceb; font-weight: bold; }  /* Operator.Word */
-        .codehilite .w { color: #cdd6f4; }  /* Text.Whitespace */
-        .codehilite .mb { color: #fab387; }  /* Literal.Number.Bin */
-        .codehilite .mf { color: #fab387; }  /* Literal.Number.Float */
-        .codehilite .mh { color: #fab387; }  /* Literal.Number.Hex */
-        .codehilite .mi { color: #fab387; }  /* Literal.Number.Integer */
-        .codehilite .mo { color: #fab387; }  /* Literal.Number.Oct */
-        .codehilite .sa { color: #a6e3a1; }  /* Literal.String.Affix */
-        .codehilite .sb { color: #a6e3a1; }  /* Literal.String.Backtick */
-        .codehilite .sc { color: #a6e3a1; }  /* Literal.String.Char */
-        .codehilite .dl { color: #a6e3a1; }  /* Literal.String.Delimiter */
-        .codehilite .sd { color: #6c7086; font-style: italic; }  /* Literal.String.Doc */
-        .codehilite .s2 { color: #a6e3a1; }  /* Literal.String.Double */
-        .codehilite .se { color: #fab387; }  /* Literal.String.Escape */
-        .codehilite .sh { color: #a6e3a1; }  /* Literal.String.Heredoc */
-        .codehilite .si { color: #fab387; }  /* Literal.String.Interpol */
-        .codehilite .sx { color: #a6e3a1; }  /* Literal.String.Other */
-        .codehilite .sr { color: #94e2d5; }  /* Literal.String.Regex */
-        .codehilite .s1 { color: #a6e3a1; }  /* Literal.String.Single */
-        .codehilite .ss { color: #a6e3a1; }  /* Literal.String.Symbol */
-        .codehilite .bp { color: #f9e2af; }  /* Name.Builtin.Pseudo */
-        .codehilite .fm { color: #89b4fa; }  /* Name.Function.Magic */
-        .codehilite .vc { color: #cdd6f4; }  /* Name.Variable.Class */
-        .codehilite .vg { color: #cdd6f4; }  /* Name.Variable.Global */
-        .codehilite .vi { color: #cdd6f4; }  /* Name.Variable.Instance */
-        .codehilite .vm { color: #cdd6f4; }  /* Name.Variable.Magic */
-        .codehilite .il { color: #fab387; }  /* Literal.Number.Integer.Long */
+        .codehilite .c { color: #6c7086; font-style: italic; }
+        .codehilite .err { color: #f38ba8; }
+        .codehilite .k { color: #cba6f7; font-weight: bold; }
+        .codehilite .o { color: #89dceb; }
+        .codehilite .p { color: #cdd6f4; }
+        .codehilite .ch { color: #6c7086; font-style: italic; }
+        .codehilite .cm { color: #6c7086; font-style: italic; }
+        .codehilite .cp { color: #f9e2af; }
+        .codehilite .cpf { color: #6c7086; font-style: italic; }
+        .codehilite .c1 { color: #6c7086; font-style: italic; }
+        .codehilite .cs { color: #6c7086; font-style: italic; }
+        .codehilite .gd { color: #f38ba8; }
+        .codehilite .ge { font-style: italic; }
+        .codehilite .gi { color: #a6e3a1; }
+        .codehilite .gs { font-weight: bold; }
+        .codehilite .gu { color: #89dceb; font-weight: bold; }
+        .codehilite .kc { color: #cba6f7; font-weight: bold; }
+        .codehilite .kd { color: #cba6f7; font-weight: bold; }
+        .codehilite .kn { color: #f38ba8; }
+        .codehilite .kp { color: #cba6f7; }
+        .codehilite .kr { color: #cba6f7; font-weight: bold; }
+        .codehilite .kt { color: #f9e2af; }
+        .codehilite .m { color: #fab387; }
+        .codehilite .s { color: #a6e3a1; }
+        .codehilite .na { color: #89b4fa; }
+        .codehilite .nb { color: #f9e2af; }
+        .codehilite .nc { color: #f9e2af; font-weight: bold; }
+        .codehilite .no { color: #fab387; }
+        .codehilite .nd { color: #89dceb; }
+        .codehilite .ni { color: #cdd6f4; }
+        .codehilite .ne { color: #f38ba8; font-weight: bold; }
+        .codehilite .nf { color: #89b4fa; }
+        .codehilite .nl { color: #cdd6f4; }
+        .codehilite .nn { color: #f9e2af; }
+        .codehilite .nt { color: #f38ba8; }
+        .codehilite .nv { color: #cdd6f4; }
+        .codehilite .ow { color: #89dceb; font-weight: bold; }
+        .codehilite .w { color: #cdd6f4; }
+        .codehilite .mb { color: #fab387; }
+        .codehilite .mf { color: #fab387; }
+        .codehilite .mh { color: #fab387; }
+        .codehilite .mi { color: #fab387; }
+        .codehilite .mo { color: #fab387; }
+        .codehilite .sa { color: #a6e3a1; }
+        .codehilite .sb { color: #a6e3a1; }
+        .codehilite .sc { color: #a6e3a1; }
+        .codehilite .dl { color: #a6e3a1; }
+        .codehilite .sd { color: #6c7086; font-style: italic; }
+        .codehilite .s2 { color: #a6e3a1; }
+        .codehilite .se { color: #fab387; }
+        .codehilite .sh { color: #a6e3a1; }
+        .codehilite .si { color: #fab387; }
+        .codehilite .sx { color: #a6e3a1; }
+        .codehilite .sr { color: #94e2d5; }
+        .codehilite .s1 { color: #a6e3a1; }
+        .codehilite .ss { color: #a6e3a1; }
+        .codehilite .bp { color: #f9e2af; }
+        .codehilite .fm { color: #89b4fa; }
+        .codehilite .vc { color: #cdd6f4; }
+        .codehilite .vg { color: #cdd6f4; }
+        .codehilite .vi { color: #cdd6f4; }
+        .codehilite .vm { color: #cdd6f4; }
+        .codehilite .il { color: #fab387; }
 
         /* Line numbers */
         .codehilite .linenos {
@@ -376,7 +391,8 @@
 <body>
     <div class="container">
         <header>
-            <h1><a href="{% url 'blog:index' %}" style="text-decoration: none; color: inherit;">Rohan Singh's Weblog</a></h1>
+            <h1><a href="{% url 'blog:index' %}">Rohan Singh's Weblog</a></h1>
+            <div class="site-description">Writing about software, data science, and things I learn along the way.</div>
             <nav>
                 <a href="{% url 'blog:index' %}">Posts</a>
                 <a href="{% url 'blog:til_list' %}">TIL</a>

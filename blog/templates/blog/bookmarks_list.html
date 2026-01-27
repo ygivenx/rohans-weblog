@@ -9,18 +9,18 @@
     <ul class="post-list">
         {% for bookmark in page_obj %}
         <li class="post-item">
+            <div class="post-date">
+                {{ bookmark.created_date|date:"jS F Y" }}
+                {% if bookmark.via_url %}
+                    &mdash; via <a href="{{ bookmark.via_url }}" target="_blank" rel="noopener noreferrer">link</a>
+                {% endif %}
+            </div>
             <h3 class="post-title">
                 <a href="{{ bookmark.url }}" target="_blank" rel="noopener noreferrer">{{ bookmark.title }}</a>
             </h3>
             {% if bookmark.description %}
             <div class="post-excerpt">{{ bookmark.description }}</div>
             {% endif %}
-            <div class="post-meta">
-                Saved: {{ bookmark.created_date|date:"F d, Y" }}
-                {% if bookmark.via_url %}
-                    | Via: <a href="{{ bookmark.via_url }}" target="_blank" rel="noopener noreferrer">link</a>
-                {% endif %}
-            </div>
             {% if bookmark.tags.all %}
             <div class="tags">
                 {% for tag in bookmark.tags.all %}
