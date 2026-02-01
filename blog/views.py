@@ -129,3 +129,8 @@ def search(request):
             "has_results": any(results.values()),
         },
     )
+
+
+def about(request):
+    """Display the about page."""
+    return render(request, "blog/about.html")
