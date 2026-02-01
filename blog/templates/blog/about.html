@@ -1,21 +1,72 @@
 {% extends "blog/base.html" %}
+{% load static %}
 
 {% block title %}About - Rohan Singh{% endblock %}
 
+{% block extra_css %}
+<style>
+    .about-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 28px;
+        margin-bottom: 28px;
+    }
+    .profile-sketch {
+        flex-shrink: 0;
+    }
+    .profile-sketch img {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        filter: grayscale(100%) contrast(1.1);
+        border: 2px solid #333;
+        box-shadow: 3px 3px 0 #ccc;
+        transition: filter 0.3s ease;
+    }
+    .profile-sketch img:hover {
+        filter: grayscale(0%) contrast(1);
+    }
+    .about-intro {
+        flex: 1;
+    }
+    .about-intro p:first-child {
+        font-size: 1.1em;
+        margin-bottom: 0.8em;
+    }
+    @media (max-width: 500px) {
+        .about-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .profile-sketch img {
+            width: 120px;
+            height: 120px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h2>About Me</h2>
+<h2>About</h2>
 
 <div class="content">
-    <p>
-        Hi, I'm <strong>Rohan Singh</strong> — a software engineer and data scientist passionate about 
-        building things that matter.
-    </p>
-
-    <p>
-        I work at the intersection of machine learning, software engineering, and healthcare. 
-        Currently, I'm exploring the frontiers of AI agents, LLMs, and how they can augment 
-        human capabilities.
-    </p>
+    <div class="about-header">
+        <div class="profile-sketch">
+            <img src="{% static 'images/rohan-profile.jpg' %}" alt="Rohan Singh">
+        </div>
+        <div class="about-intro">
+            <p>
+                Hi, I'm <strong>Rohan Singh</strong> — a software engineer and data scientist passionate about 
+                building things that matter.
+            </p>
+            <p>
+                I work at the intersection of machine learning, software engineering, and healthcare. 
+                Currently, I'm exploring the frontiers of AI agents, LLMs, and how they can augment 
+                human capabilities.
+            </p>
+        </div>
+    </div>
 
     <h3>What I Do</h3>
     <ul>
