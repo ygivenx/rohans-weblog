@@ -55,45 +55,21 @@ A Django-based personal blog with support for blog posts, TIL entries, bookmarks
 
 7. Visit `http://127.0.0.1:8000/` in your browser.
 
-## Deployment to Render
+## Deployment to Hostinger
 
-This project is configured for deployment on [Render](https://render.com).
+This project is ready to deploy on a Hostinger VPS using Gunicorn + Nginx.
 
-### Setup on Render
+### Quick Steps
 
-1. **Create a new Web Service** on Render:
-   - Connect your GitHub repository
-   - Select the `render.yaml` file for configuration
-   - Or manually configure:
-     - **Build Command**: `./build.sh`
-     - **Start Command**: `gunicorn rohans_weblog.wsgi:application`
-     - **Environment**: Python 3
+1. Provision a Hostinger VPS and point your domain DNS to the server.
+2. Install system dependencies (`python3`, `python3-venv`, `nginx`, `git`).
+3. Clone this repository on the server.
+4. Set production environment variables.
+5. Run migrations and collect static files.
+6. Configure a `systemd` service for Gunicorn.
+7. Configure Nginx reverse proxy and enable HTTPS.
 
-2. **Set Environment Variables** in Render dashboard:
-   - `DJANGO_SECRET_KEY`: Generate a secure secret key
-     ```bash
-     python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-     ```
-   - `DJANGO_DEBUG`: `False`
-   - `DJANGO_ALLOWED_HOSTS`: Your Render domain (e.g., `your-app.onrender.com`)
-   - `DATABASE_URL`: Automatically set by Render if you create a PostgreSQL database
-
-3. **Create a PostgreSQL Database**:
-   - In Render dashboard, create a new PostgreSQL database
-   - The `render.yaml` configuration will automatically connect it
-
-4. **Enable Auto-Deploy**:
-   - Render will automatically deploy when you push to the `main` branch
-
-### CI/CD with GitHub Actions
-
-The project includes a GitHub Actions workflow that:
-- Runs tests on every push and pull request
-- Automatically deploys to Render when pushing to `main`
-
-**Required GitHub Secrets**:
-- `RENDER_SERVICE_ID`: Your Render service ID (found in Render dashboard)
-- `RENDER_API_KEY`: Your Render API key (generate in Render dashboard → Account Settings → API Keys)
+For complete, copy-paste instructions, see [`HOSTINGER_SETUP.md`](HOSTINGER_SETUP.md).
 
 ## Project Structure
 
@@ -113,9 +89,8 @@ rohans-weblog/
 │   └── wsgi.py            # WSGI configuration
 ├── content/               # Source markdown files (for import)
 ├── static/                # Static files (images, CSS)
-├── render.yaml            # Render deployment configuration
-├── build.sh               # Build script for Render
-├── Procfile               # Process file for Render
+├── build.sh               # Build script for production-style setup
+├── Procfile               # Optional process file (legacy)
 └── pyproject.toml         # Python dependencies
 ```
 
@@ -136,7 +111,7 @@ Options:
 ### Required for Production
 - `DJANGO_SECRET_KEY`: Django secret key
 - `DJANGO_ALLOWED_HOSTS`: Comma-separated list of allowed hosts
-- `DATABASE_URL`: PostgreSQL connection string (automatically set by Render)
+- `DATABASE_URL`: PostgreSQL connection string
 
 ### Optional
 - `DJANGO_DEBUG`: Set to `False` in production (default: `True`)

@@ -42,10 +42,10 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-# Render sets this automatically for your service's .onrender.com hostname
-RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Optional extra hostname injected by platform or proxy
+EXTERNAL_HOSTNAME = os.environ.get("EXTERNAL_HOSTNAME")
+if EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(EXTERNAL_HOSTNAME)
 
 
 # Application definition
