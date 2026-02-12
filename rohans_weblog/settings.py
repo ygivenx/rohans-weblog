@@ -95,7 +95,18 @@ WSGI_APPLICATION = "rohans_weblog.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Use PostgreSQL if DATABASE_URL is set, otherwise SQLite (local dev)
+# URL-encode password in DATABASE_URL to handle special characters
+_db_url = os.environ.get("DATABASE_URL", "")
+if _db_url and "://" in _db_url:
+    from urllib.parse import quote, urlparse, urlunparse
+
+    _parsed = urlparse(_db_url)
+    if _parsed.password:
+        _netloc = f"{_parsed.username}:{quote(_parsed.password, safe='')}@{_parsed.hostname}"
+        if _parsed.port:
+            _netloc += f":{_parsed.port}"
+        os.environ["DATABASE_URL"] = urlunparse(_parsed._replace(netloc=_netloc))
+
 try:
     import dj_database_url
 
@@ -107,7 +118,6 @@ try:
         )
     }
 except ImportError:
-    # Fallback to SQLite if dj_database_url is not installed
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
