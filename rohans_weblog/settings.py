@@ -95,29 +95,20 @@ WSGI_APPLICATION = "rohans_weblog.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# URL-encode password in DATABASE_URL to handle special characters
-_db_url = os.environ.get("DATABASE_URL", "")
-if _db_url and "://" in _db_url:
-    from urllib.parse import quote, urlparse, urlunparse
-
-    _parsed = urlparse(_db_url)
-    if _parsed.password:
-        _netloc = f"{_parsed.username}:{quote(_parsed.password, safe='')}@{_parsed.hostname}"
-        if _parsed.port:
-            _netloc += f":{_parsed.port}"
-        os.environ["DATABASE_URL"] = urlunparse(_parsed._replace(netloc=_netloc))
-
-try:
-    import dj_database_url
-
+if os.environ.get("POSTGRES_DB"):
     DATABASES = {
-        "default": dj_database_url.config(
-            default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ["POSTGRES_DB"],
+            "USER": os.environ.get("POSTGRES_USER", "weblog"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "db"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": 600,
+            "CONN_HEALTH_CHECKS": True,
+        }
     }
-except ImportError:
+else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
