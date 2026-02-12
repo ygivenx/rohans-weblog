@@ -42,10 +42,10 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-# Render sets this automatically for your service's .onrender.com hostname
-RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Optional extra hostname injected by platform or proxy
+EXTERNAL_HOSTNAME = os.environ.get("EXTERNAL_HOSTNAME")
+if EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -95,7 +95,7 @@ WSGI_APPLICATION = "rohans_weblog.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Use PostgreSQL if DATABASE_URL is set (Render production), otherwise SQLite (local dev)
+# Use PostgreSQL if DATABASE_URL is set, otherwise SQLite (local dev)
 try:
     import dj_database_url
 

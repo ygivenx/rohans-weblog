@@ -1,7 +1,7 @@
 # Rohan's Weblog
 
 ## Project Overview
-Rohan Singh's weblog built with Django, deployed on Render.
+Rohan Singh's weblog built with Django.
 
 ## Stack
 - **Framework**: Django 5.0+
