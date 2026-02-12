@@ -42,18 +42,62 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
-      - name: Deploy to Hostinger
-        uses: hostinger/deploy-on-vps@v2
+      - name: Create deployment archive
+        run: |
+          tar -czf deploy.tar.gz \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.venv' \
+            --exclude='venv' \
+            --exclude='db.sqlite3' \
+            --exclude='staticfiles' \
+            --exclude='media' \
+            --exclude='.DS_Store' \
+            --exclude='content' \
+            .
+
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
-          api-key: ${{ secrets.HOSTINGER_API_KEY }}
-          virtual-machine: ${{ vars.HOSTINGER_VM_ID }}
-          project-name: rohans-weblog
-          environment-variables: |
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: deploy.tar.gz
+          target: /tmp
+
+      - name: Deploy on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd /opt/rohans-weblog
+
+            # Extract new code
+            tar -xzf /tmp/deploy.tar.gz
+            rm /tmp/deploy.tar.gz
+
+            # Write env file from secrets
+            cat > .env << 'ENVEOF'
             DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
             DJANGO_DEBUG=False
             DJANGO_ALLOWED_HOSTS=${{ vars.DJANGO_ALLOWED_HOSTS }}
             POSTGRES_DB=weblog
             POSTGRES_USER=weblog
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            ENVEOF
+
+            # Build and deploy
+            docker compose build
+            docker compose up -d
+
+            # Wait and verify
+            sleep 10
+            docker compose ps
