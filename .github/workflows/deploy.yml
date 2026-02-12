@@ -44,32 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create deployment archive
-        run: |
-          tar -czf /tmp/deploy.tar.gz \
-            --exclude='.git' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            --exclude='.venv' \
-            --exclude='venv' \
-            --exclude='db.sqlite3' \
-            --exclude='staticfiles' \
-            --exclude='media' \
-            --exclude='.DS_Store' \
-            --exclude='content' \
-            .
-
-      - name: Copy files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ vars.VPS_HOST }}
-          username: ${{ vars.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ vars.VPS_PORT }}
-          source: /tmp/deploy.tar.gz
-          target: /tmp
-
-      - name: Deploy on VPS
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ vars.VPS_HOST }}
@@ -80,11 +55,10 @@ jobs:
             set -e
             cd /opt/rohans-weblog
 
-            # Extract new code
-            tar -xzf /tmp/deploy.tar.gz
-            rm /tmp/deploy.tar.gz
+            # Pull latest code
+            git pull origin main
 
-            # Write env file from secrets
+            # Write env file
             cat > .env << 'ENVEOF'
             DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
             DJANGO_DEBUG=False
