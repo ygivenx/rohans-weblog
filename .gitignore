@@ -76,3 +76,7 @@ htmlcov/
 # =========================
 node_modules/
 
+# =========================
+# Local migration exports
+# =========================
+render-export/

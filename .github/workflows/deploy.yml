@@ -1,0 +1,59 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run migrations
+        run: uv run python manage.py migrate
+        env:
+          DJANGO_SECRET_KEY: test-secret-key-for-ci
+          DJANGO_DEBUG: "True"
+          DJANGO_ALLOWED_HOSTS: localhost
+
+      - name: Run Django checks
+        run: uv run python manage.py check --deploy
+        env:
+          DJANGO_SECRET_KEY: test-secret-key-for-ci
+          DJANGO_DEBUG: "False"
+          DJANGO_ALLOWED_HOSTS: localhost
+
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Deploy to Hostinger
+        uses: hostinger/deploy-on-vps@v2
+        with:
+          api-key: ${{ secrets.HOSTINGER_API_KEY }}
+          virtual-machine: ${{ vars.HOSTINGER_VM_ID }}
+          project-name: rohans-weblog
+          environment-variables: |
+            DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+            DJANGO_DEBUG=False
+            DJANGO_ALLOWED_HOSTS=${{ vars.DJANGO_ALLOWED_HOSTS }}
+            POSTGRES_DB=weblog
+            POSTGRES_USER=weblog
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}

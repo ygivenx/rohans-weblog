@@ -95,7 +95,7 @@ WSGI_APPLICATION = "rohans_weblog.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Use PostgreSQL if DATABASE_URL is set (Render production), otherwise SQLite (local dev)
+# Use PostgreSQL if DATABASE_URL is set, otherwise SQLite (local dev)
 try:
     import dj_database_url
 
