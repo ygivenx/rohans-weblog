@@ -3,7 +3,7 @@ from django.core.paginator import Paginator
 
 from .models import BlogPost, TIL, Bookmark, FeedItem, Tag
 from .search import search_content
-from .utils import render_markdown, POSTS_PER_PAGE, TILS_PER_PAGE, BOOKMARKS_PER_PAGE, FEED_PER_PAGE
+from .utils import render_markdown, POSTS_PER_PAGE, TILS_PER_PAGE, BOOKMARKS_PER_PAGE
 
 
 def post_list(request):
@@ -146,11 +146,13 @@ def feed_list(request):
     grouped = []
     for key, group in groupby(items, key=lambda x: x.created_date.strftime("%Y-%m")):
         items_list = list(group)
-        grouped.append({
-            "month_key": key,
-            "month_label": items_list[0].created_date.strftime("%B %Y"),
-            "items": items_list,
-        })
+        grouped.append(
+            {
+                "month_key": key,
+                "month_label": items_list[0].created_date.strftime("%B %Y"),
+                "items": items_list,
+            }
+        )
 
     return render(
         request,
@@ -184,8 +186,14 @@ def tag_detail(request, slug):
         .prefetch_related("tags")
         .order_by("-published_date", "-created_date")
     )
-    tils = TIL.objects.filter(tags=tag).prefetch_related("tags").order_by("-created_date")
-    feed_items = FeedItem.objects.filter(tags=tag).prefetch_related("tags").order_by("-created_date")
+    tils = (
+        TIL.objects.filter(tags=tag).prefetch_related("tags").order_by("-created_date")
+    )
+    feed_items = (
+        FeedItem.objects.filter(tags=tag)
+        .prefetch_related("tags")
+        .order_by("-created_date")
+    )
 
     for item in feed_items:
         item.body_html = render_markdown(item.body)

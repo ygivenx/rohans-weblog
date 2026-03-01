@@ -1,5 +1,5 @@
 from django.db.models import Q
-from .models import BlogPost, TIL, Bookmark, FeedItem, Tag
+from .models import BlogPost, TIL, Bookmark, FeedItem
 
 
 def _build_text_search_query(query, fields):

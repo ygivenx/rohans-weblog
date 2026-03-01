@@ -5,7 +5,9 @@ from .models import Tag
 def all_tags(request):
     """Inject all tags with total content counts into every template."""
     tags = Tag.objects.annotate(
-        post_count=Count("blog_posts", filter=Q(blog_posts__is_published=True), distinct=True),
+        post_count=Count(
+            "blog_posts", filter=Q(blog_posts__is_published=True), distinct=True
+        ),
         til_count=Count("tils", distinct=True),
         feed_count=Count("feed_items", distinct=True),
     ).order_by("name")
