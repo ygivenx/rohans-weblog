@@ -67,6 +67,22 @@
             {% endfor %}
         </ul>
         {% endif %}
+
+        {% if results.feed_items %}
+        <h4>Feed Items ({{ results.feed_items|length }})</h4>
+        <ul class="post-list">
+            {% for item in results.feed_items %}
+            <li class="post-item">
+                <h3 class="post-title">
+                    <a href="{% url 'blog:feed_detail' item.slug %}">{{ item.title|default:item.body|truncatewords:10 }}</a>
+                </h3>
+                <div class="post-meta">
+                    {{ item.get_content_type_display }} &middot; {{ item.created_date|date:"F d, Y" }}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
     {% else %}
         <p>No results found.</p>
     {% endif %}

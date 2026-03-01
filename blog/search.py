@@ -1,5 +1,5 @@
 from django.db.models import Q
-from .models import BlogPost, TIL, Bookmark, Tag
+from .models import BlogPost, TIL, Bookmark, FeedItem, Tag
 
 
 def _build_text_search_query(query, fields):
@@ -87,6 +87,7 @@ def search_content(query, tag_slug=None):
             "posts": BlogPost.objects.none(),
             "tils": TIL.objects.none(),
             "bookmarks": Bookmark.objects.none(),
+            "feed_items": FeedItem.objects.none(),
         }
 
     # Search in BlogPost (published only)
@@ -128,8 +129,25 @@ def search_content(query, tag_slug=None):
         Bookmark.objects.filter(bookmark_filter).distinct().order_by("-created_date")
     )
 
+    # Search in FeedItem
+    # Search fields: title, body, url, tags
+    feed_filter = _build_combined_filter(
+        query,
+        tag_slug,
+        [
+            "title__icontains",
+            "body__icontains",
+            "url__icontains",
+            "tags__name__icontains",
+        ],
+    )
+    feed_items = (
+        FeedItem.objects.filter(feed_filter).distinct().order_by("-created_date")
+    )
+
     return {
         "posts": posts,
         "tils": tils,
         "bookmarks": bookmarks,
+        "feed_items": feed_items,
     }

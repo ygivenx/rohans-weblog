@@ -1,0 +1,38 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ item.title|default:"Feed Item" }}{% endblock %}
+
+{% block content %}
+<article>
+    {% if item.title %}
+    <h1>{{ item.title }}</h1>
+    {% endif %}
+
+    <div class="post-date">
+        {{ item.created_date|date:"jS F Y" }}
+        <span style="color: #999;">&middot; {{ item.get_content_type_display }}</span>
+    </div>
+
+    {% if item.tags.all %}
+    <div class="tags">
+        {% for tag in item.tags.all %}
+            <span class="tag">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if item.url %}
+    <p style="margin-top: 12px;">
+        <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a>
+    </p>
+    {% endif %}
+
+    <div class="content">
+        {{ item.body_html|safe }}
+    </div>
+</article>
+
+<p style="margin-top: 30px;">
+    <a href="{% url 'blog:feed_list' %}">&larr; Back to Feed</a>
+</p>
+{% endblock %}

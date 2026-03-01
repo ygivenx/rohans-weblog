@@ -101,3 +101,46 @@ class Bookmark(models.Model):
 
     def get_absolute_url(self):
         return self.url
+
+
+class FeedItem(models.Model):
+    """Feed item for microblog/tumblelog: links, notes, and code snippets."""
+
+    CONTENT_TYPE_CHOICES = [
+        ("link", "Link"),
+        ("note", "Note"),
+        ("code", "Code"),
+    ]
+
+    content_type = models.CharField(max_length=10, choices=CONTENT_TYPE_CHOICES)
+    title = models.CharField(max_length=200, blank=True)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    url = models.URLField(blank=True, help_text="URL for link-type items")
+    body = models.TextField(help_text="Markdown content")
+    created_date = models.DateTimeField(auto_now_add=True)
+    tags = models.ManyToManyField(Tag, blank=True, related_name="feed_items")
+
+    class Meta:
+        ordering = ["-created_date"]
+        verbose_name = "Feed Item"
+        verbose_name_plural = "Feed Items"
+
+    def __str__(self):
+        return self.title or self.body[:50]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            source = self.title or self.body[:50]
+            base_slug = slugify(source)
+            if not base_slug:
+                base_slug = "feed-item"
+            slug = base_slug
+            n = 1
+            while FeedItem.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("feed_detail", kwargs={"slug": self.slug})

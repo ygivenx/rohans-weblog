@@ -8,6 +8,7 @@ from bleach.css_sanitizer import CSSSanitizer
 POSTS_PER_PAGE = 10
 TILS_PER_PAGE = 20
 BOOKMARKS_PER_PAGE = 20
+FEED_PER_PAGE = 20
 
 # Allowed HTML tags for sanitized markdown output
 ALLOWED_TAGS = [

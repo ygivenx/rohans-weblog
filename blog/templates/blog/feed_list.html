@@ -1,0 +1,65 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Feed{% endblock %}
+
+{% block content %}
+<h2>Feed</h2>
+
+{% if page_obj %}
+    <ul class="post-list">
+        {% for item in page_obj %}
+        <li class="post-item">
+            <div class="post-date">
+                {{ item.created_date|date:"jS F Y" }}
+                <span style="color: #999;">&middot; {{ item.get_content_type_display }}</span>
+            </div>
+            {% if item.title %}
+            <h3 class="post-title">
+                {% if item.content_type == "link" and item.url %}
+                    <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+                {% else %}
+                    <a href="{% url 'blog:feed_detail' item.slug %}">{{ item.title }}</a>
+                {% endif %}
+            </h3>
+            {% endif %}
+            <div class="content">
+                {{ item.body_html|safe }}
+            </div>
+            {% if item.content_type == "link" and item.url and not item.title %}
+            <p><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a></p>
+            {% endif %}
+            {% if item.tags.all %}
+            <div class="tags">
+                {% for tag in item.tags.all %}
+                    <span class="tag">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div style="margin-top: 6px; font-size: 0.8em;">
+                <a href="{% url 'blog:feed_detail' item.slug %}" style="color: #999;">#</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+{% else %}
+    <p>No feed items yet.</p>
+{% endif %}
+{% endblock %}

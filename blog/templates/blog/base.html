@@ -6,7 +6,7 @@
     <title>{% block title %}Rohan Singh's Weblog{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
     <script>
         MathJax = {
             tex: {
@@ -51,9 +51,11 @@
             border-bottom: 1px solid #ccc;
         }
         header h1 {
-            font-size: 1.8em;
+            font-size: 1.5em;
             margin-bottom: 2px;
-            font-weight: normal;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: -0.02em;
         }
         header h1 a {
             color: #000;
@@ -64,22 +66,33 @@
         }
         .site-description {
             color: #666;
-            font-size: 0.9em;
+            font-size: 0.8em;
             margin-bottom: 8px;
+            font-family: 'Montserrat', sans-serif;
         }
         nav {
             margin-top: 6px;
-            font-size: 0.95em;
+            font-size: 0.8em;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
         }
         nav a {
-            margin-right: 12px;
+            margin-right: 16px;
             color: #195f00;
+            text-decoration: none;
+        }
+        nav a:hover {
+            text-decoration: underline;
         }
         h2 {
-            font-size: 1.3em;
+            font-size: 1.2em;
             margin-top: 20px;
             margin-bottom: 12px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: -0.01em;
         }
         .post-list {
             list-style: none;
@@ -93,9 +106,13 @@
             border-bottom: none;
         }
         .post-date {
-            color: #666;
-            font-size: 0.85em;
-            font-family: Verdana, Geneva, sans-serif;
+            color: #888;
+            font-size: 0.75em;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
         }
         .post-title {
             font-size: 1.15em;
@@ -107,9 +124,10 @@
             color: #195f00;
         }
         .post-meta {
-            color: #666;
-            font-size: 0.85em;
-            font-family: Verdana, Geneva, sans-serif;
+            color: #888;
+            font-size: 0.75em;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
             margin-bottom: 4px;
         }
         .post-excerpt {
@@ -122,67 +140,89 @@
         }
         .tag {
             display: inline;
-            font-size: 0.8em;
-            font-family: Verdana, Geneva, sans-serif;
+            font-size: 0.72em;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
             color: #195f00;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
         }
         .tag::after {
             content: " ";
         }
         .pagination {
             margin-top: 20px;
-            font-size: 0.9em;
+            font-size: 0.78em;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
         }
         .pagination a {
             margin-right: 8px;
             color: #195f00;
         }
         .pagination .current {
-            font-weight: bold;
+            font-weight: 600;
             color: #000;
         }
         footer {
             margin-top: 40px;
             padding-top: 12px;
             border-top: 1px solid #ccc;
-            color: #666;
-            font-size: 0.85em;
-            font-family: Verdana, Geneva, sans-serif;
+            color: #888;
+            font-size: 0.75em;
+            font-family: 'Montserrat', sans-serif;
         }
         .content {
             margin-top: 16px;
             line-height: 1.7;
         }
+        /* Article title (outside .content) */
+        article h1 {
+            font-size: 1.7em;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+            line-height: 1.25;
+        }
+
         /* Headings */
         .content h1 {
             font-size: 1.6em;
             margin-top: 28px;
             margin-bottom: 12px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: -0.02em;
         }
         .content h2 {
-            font-size: 1.35em;
+            font-size: 1.3em;
             margin-top: 24px;
             margin-bottom: 10px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: -0.01em;
         }
         .content h3 {
-            font-size: 1.15em;
+            font-size: 1.1em;
             margin-top: 20px;
             margin-bottom: 8px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
         }
         .content h4 {
-            font-size: 1.05em;
+            font-size: 1em;
             margin-top: 16px;
             margin-bottom: 6px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
         }
         .content h5, .content h6 {
-            font-size: 1em;
+            font-size: 0.95em;
             margin-top: 12px;
             margin-bottom: 6px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
         }
         /* Paragraphs */
         .content p {
@@ -394,10 +434,10 @@
             <h1><a href="{% url 'blog:index' %}">Rohan Singh's Weblog</a></h1>
             <div class="site-description">Writing about software, data science, and things I learn along the way.</div>
             <nav>
-                <a href="{% url 'blog:index' %}">Posts</a>
+                <a href="{% url 'blog:index' %}">Feed</a>
+                <a href="{% url 'blog:post_list' %}">Writing</a>
                 <a href="{% url 'blog:til_list' %}">TIL</a>
                 <a href="{% url 'blog:bookmarks_list' %}">Bookmarks</a>
-                <a href="{% url 'blog:search' %}">Search</a>
                 <a href="{% url 'blog:about' %}">About</a>
             </nav>
         </header>
@@ -407,7 +447,7 @@
         </main>
 
         <footer>
-            <p>&copy; {% now "Y" %} Rohan Singh</p>
+            <p>&copy; {% now "Y" %} Rohan Singh &middot; <a href="{% url 'blog:search' %}">Search</a></p>
         </footer>
     </div>
 </body>

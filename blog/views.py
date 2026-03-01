@@ -1,12 +1,12 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 
-from .models import BlogPost, TIL, Bookmark
+from .models import BlogPost, TIL, Bookmark, FeedItem
 from .search import search_content
-from .utils import render_markdown, POSTS_PER_PAGE, TILS_PER_PAGE, BOOKMARKS_PER_PAGE
+from .utils import render_markdown, POSTS_PER_PAGE, TILS_PER_PAGE, BOOKMARKS_PER_PAGE, FEED_PER_PAGE
 
 
-def index(request):
+def post_list(request):
     """List all published blog posts (paginated)."""
     posts = (
         BlogPost.objects.filter(is_published=True)
@@ -111,11 +111,15 @@ def search(request):
 
         for til in results["tils"]:
             til.content_html = render_markdown(til.content)
+
+        for item in results["feed_items"]:
+            item.body_html = render_markdown(item.body)
     else:
         results = {
             "posts": BlogPost.objects.none(),
             "tils": TIL.objects.none(),
             "bookmarks": Bookmark.objects.none(),
+            "feed_items": FeedItem.objects.none(),
         }
 
     return render(
@@ -127,6 +131,40 @@ def search(request):
             "tag_slug": tag_slug,
             "results": results,
             "has_results": any(results.values()),
+        },
+    )
+
+
+def feed_list(request):
+    """List all feed items (paginated)."""
+    items = FeedItem.objects.prefetch_related("tags").order_by("-created_date")
+
+    paginator = Paginator(items, FEED_PER_PAGE)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    for item in page_obj:
+        item.body_html = render_markdown(item.body)
+
+    return render(
+        request,
+        "blog/feed_list.html",
+        {
+            "page_obj": page_obj,
+        },
+    )
+
+
+def feed_detail(request, slug):
+    """Display a single feed item."""
+    item = get_object_or_404(FeedItem, slug=slug)
+    item.body_html = render_markdown(item.body)
+
+    return render(
+        request,
+        "blog/feed_detail.html",
+        {
+            "item": item,
         },
     )
 

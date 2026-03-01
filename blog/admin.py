@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django import forms
 from martor.widgets import AdminMartorWidget
-from .models import BlogPost, TIL, Bookmark, Tag
+from .models import BlogPost, TIL, Bookmark, Tag, FeedItem
 
 
 class BlogPostAdminForm(forms.ModelForm):
@@ -109,6 +109,38 @@ class BookmarkAdmin(admin.ModelAdmin):
             {"fields": ("title", "url", "description", "via_url")},
         ),
         ("Metadata", {"fields": ("tags", "created_date"), "classes": ("collapse",)}),
+    )
+
+    readonly_fields = ["created_date"]
+
+
+class FeedItemAdminForm(forms.ModelForm):
+    """Custom form for FeedItem with Martor markdown editor."""
+
+    class Meta:
+        model = FeedItem
+        fields = "__all__"
+        widgets = {
+            "body": AdminMartorWidget(),
+        }
+
+
+@admin.register(FeedItem)
+class FeedItemAdmin(admin.ModelAdmin):
+    """Admin interface for FeedItem model."""
+
+    form = FeedItemAdminForm
+    list_display = ["__str__", "content_type", "slug", "created_date"]
+    list_filter = ["content_type", "created_date", "tags"]
+    search_fields = ["title", "body", "url", "slug"]
+    prepopulated_fields = {"slug": ("title",)}
+    filter_horizontal = ["tags"]
+    date_hierarchy = "created_date"
+    ordering = ["-created_date"]
+
+    fieldsets = (
+        ("Content", {"fields": ("content_type", "title", "slug", "url", "body")}),
+        ("Metadata", {"fields": ("tags", "created_date")}),
     )
 
     readonly_fields = ["created_date"]
