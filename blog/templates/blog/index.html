@@ -22,7 +22,7 @@
             {% if post.tags.all %}
             <div class="tags">
                 {% for tag in post.tags.all %}
-                    <span class="tag">{{ tag.name }}</span>
+                    <a href="{% url 'blog:tag_detail' tag.slug %}" class="tag">{{ tag.name }}</a>
                 {% endfor %}
             </div>
             {% endif %}

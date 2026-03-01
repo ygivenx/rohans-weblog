@@ -164,6 +164,31 @@
             font-weight: 600;
             color: #000;
         }
+        .tag-bar {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #e8e8e8;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag-bar a {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.7em;
+            font-weight: 500;
+            text-decoration: none;
+            color: #555;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .tag-bar a:hover {
+            color: #195f00;
+        }
+        .tag-bar a .tag-count {
+            color: #bbb;
+            font-size: 0.85em;
+            margin-left: 2px;
+        }
         footer {
             margin-top: 40px;
             padding-top: 12px;
@@ -437,9 +462,15 @@
                 <a href="{% url 'blog:index' %}">Feed</a>
                 <a href="{% url 'blog:post_list' %}">Writing</a>
                 <a href="{% url 'blog:til_list' %}">TIL</a>
-                <a href="{% url 'blog:bookmarks_list' %}">Bookmarks</a>
                 <a href="{% url 'blog:about' %}">About</a>
             </nav>
+        {% if all_tags %}
+        <div class="tag-bar">
+            {% for tag in all_tags %}
+                <a href="{% url 'blog:tag_detail' tag.slug %}">{{ tag.name }}<span class="tag-count">{{ tag.total_count }}</span></a>
+            {% endfor %}
+        </div>
+        {% endif %}
         </header>
 
         <main>

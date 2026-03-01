@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 
-from .models import BlogPost, TIL, Bookmark, FeedItem
+from .models import BlogPost, TIL, Bookmark, FeedItem, Tag
 from .search import search_content
 from .utils import render_markdown, POSTS_PER_PAGE, TILS_PER_PAGE, BOOKMARKS_PER_PAGE, FEED_PER_PAGE
 
@@ -136,21 +136,27 @@ def search(request):
 
 
 def feed_list(request):
-    """List all feed items (paginated)."""
-    items = FeedItem.objects.prefetch_related("tags").order_by("-created_date")
+    """List all feed items grouped by month with timeline navigation."""
+    from itertools import groupby
 
-    paginator = Paginator(items, FEED_PER_PAGE)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    for item in page_obj:
+    items = list(FeedItem.objects.prefetch_related("tags").order_by("-created_date"))
+    for item in items:
         item.body_html = render_markdown(item.body)
+
+    grouped = []
+    for key, group in groupby(items, key=lambda x: x.created_date.strftime("%Y-%m")):
+        items_list = list(group)
+        grouped.append({
+            "month_key": key,
+            "month_label": items_list[0].created_date.strftime("%B %Y"),
+            "items": items_list,
+        })
 
     return render(
         request,
         "blog/feed_list.html",
         {
-            "page_obj": page_obj,
+            "grouped": grouped,
         },
     )
 
@@ -165,6 +171,33 @@ def feed_detail(request, slug):
         "blog/feed_detail.html",
         {
             "item": item,
+        },
+    )
+
+
+def tag_detail(request, slug):
+    """Show all content with a given tag."""
+    tag = get_object_or_404(Tag, slug=slug)
+
+    posts = (
+        BlogPost.objects.filter(is_published=True, tags=tag)
+        .prefetch_related("tags")
+        .order_by("-published_date", "-created_date")
+    )
+    tils = TIL.objects.filter(tags=tag).prefetch_related("tags").order_by("-created_date")
+    feed_items = FeedItem.objects.filter(tags=tag).prefetch_related("tags").order_by("-created_date")
+
+    for item in feed_items:
+        item.body_html = render_markdown(item.body)
+
+    return render(
+        request,
+        "blog/tag_detail.html",
+        {
+            "tag": tag,
+            "posts": posts,
+            "tils": tils,
+            "feed_items": feed_items,
         },
     )
 

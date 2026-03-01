@@ -1,0 +1,64 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}#{{ tag.name }}{% endblock %}
+
+{% block content %}
+<h2>#{{ tag.name }}</h2>
+
+{% if not posts and not tils and not feed_items %}
+    <p>No content tagged with this yet.</p>
+{% endif %}
+
+{% if feed_items %}
+<h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px;">Feed</h3>
+<ul class="post-list">
+    {% for item in feed_items %}
+    <li class="post-item">
+        <div class="post-date">
+            {{ item.created_date|date:"jS F Y" }}
+            <span style="color: #bbb;">&middot; {{ item.get_content_type_display }}</span>
+        </div>
+        {% if item.title %}
+        <h3 class="post-title">
+            {% if item.content_type == "link" and item.url %}
+                <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+            {% else %}
+                <a href="{% url 'blog:feed_detail' item.slug %}">{{ item.title }}</a>
+            {% endif %}
+        </h3>
+        {% endif %}
+        <div class="content">{{ item.body_html|safe }}</div>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if posts %}
+<h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px;">Writing</h3>
+<ul class="post-list">
+    {% for post in posts %}
+    <li class="post-item">
+        <div class="post-date">{{ post.published_date|date:"jS F Y" }}</div>
+        <h3 class="post-title">
+            <a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a>
+        </h3>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if tils %}
+<h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px;">TIL</h3>
+<ul class="post-list">
+    {% for til in tils %}
+    <li class="post-item">
+        <div class="post-date">{{ til.created_date|date:"jS F Y" }}</div>
+        <h3 class="post-title">
+            <a href="{% url 'blog:til_detail' til.slug %}">{{ til.title }}</a>
+        </h3>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}

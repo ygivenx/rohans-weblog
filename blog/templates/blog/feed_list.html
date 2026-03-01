@@ -2,64 +2,131 @@
 
 {% block title %}Feed{% endblock %}
 
+{% block extra_css %}
+<style>
+    .feed-layout {
+        display: grid;
+        grid-template-columns: 1fr 120px;
+        gap: 40px;
+        align-items: start;
+    }
+    .feed-timeline {
+        position: sticky;
+        top: 20px;
+        text-align: right;
+    }
+    .feed-timeline a {
+        display: block;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.7em;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #bbb;
+        text-decoration: none;
+        margin-bottom: 8px;
+        transition: color 0.1s;
+    }
+    .feed-timeline a:hover,
+    .feed-timeline a.active {
+        color: #195f00;
+    }
+    .feed-month-label {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.72em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #bbb;
+        margin: 28px 0 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .feed-month-label:first-child {
+        margin-top: 0;
+    }
+    @media (max-width: 600px) {
+        .feed-layout {
+            grid-template-columns: 1fr;
+        }
+        .feed-timeline {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <h2>Feed</h2>
 
-{% if page_obj %}
-    <ul class="post-list">
-        {% for item in page_obj %}
-        <li class="post-item">
-            <div class="post-date">
-                {{ item.created_date|date:"jS F Y" }}
-                <span style="color: #999;">&middot; {{ item.get_content_type_display }}</span>
-            </div>
-            {% if item.title %}
-            <h3 class="post-title">
-                {% if item.content_type == "link" and item.url %}
-                    <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
-                {% else %}
-                    <a href="{% url 'blog:feed_detail' item.slug %}">{{ item.title }}</a>
-                {% endif %}
-            </h3>
-            {% endif %}
-            <div class="content">
-                {{ item.body_html|safe }}
-            </div>
-            {% if item.content_type == "link" and item.url and not item.title %}
-            <p><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a></p>
-            {% endif %}
-            {% if item.tags.all %}
-            <div class="tags">
-                {% for tag in item.tags.all %}
-                    <span class="tag">{{ tag.name }}</span>
+{% if grouped %}
+<div class="feed-layout">
+    <div class="feed-main">
+        {% for month in grouped %}
+        <div id="month-{{ month.month_key }}">
+            <div class="feed-month-label">{{ month.month_label }}</div>
+            <ul class="post-list">
+                {% for item in month.items %}
+                <li class="post-item">
+                    <div class="post-date">
+                        {{ item.created_date|date:"j F" }}
+                        <span style="color: #ccc;">&middot; {{ item.get_content_type_display }}</span>
+                    </div>
+                    {% if item.title %}
+                    <h3 class="post-title">
+                        {% if item.content_type == "link" and item.url %}
+                            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+                        {% else %}
+                            <a href="{% url 'blog:feed_detail' item.slug %}">{{ item.title }}</a>
+                        {% endif %}
+                    </h3>
+                    {% endif %}
+                    <div class="content">
+                        {{ item.body_html|safe }}
+                    </div>
+                    {% if item.content_type == "link" and item.url and not item.title %}
+                    <p><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a></p>
+                    {% endif %}
+                    {% if item.tags.all %}
+                    <div class="tags">
+                        {% for tag in item.tags.all %}
+                            <a href="{% url 'blog:tag_detail' tag.slug %}" class="tag">{{ tag.name }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div style="margin-top: 6px; font-size: 0.8em;">
+                        <a href="{% url 'blog:feed_detail' item.slug %}" style="color: #ddd;">#</a>
+                    </div>
+                </li>
                 {% endfor %}
-            </div>
-            {% endif %}
-            <div style="margin-top: 6px; font-size: 0.8em;">
-                <a href="{% url 'blog:feed_detail' item.slug %}" style="color: #999;">#</a>
-            </div>
-        </li>
+            </ul>
+        </div>
         {% endfor %}
-    </ul>
-
-    {% if page_obj.has_other_pages %}
-    <div class="pagination">
-        {% if page_obj.has_previous %}
-            <a href="?page=1">&laquo; first</a>
-            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
-        {% endif %}
-
-        <span class="current">
-            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-        </span>
-
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-        {% endif %}
     </div>
-    {% endif %}
+
+    <nav class="feed-timeline">
+        {% for month in grouped %}
+            <a href="#month-{{ month.month_key }}">{{ month.month_label }}</a>
+        {% endfor %}
+    </nav>
+</div>
 {% else %}
     <p>No feed items yet.</p>
 {% endif %}
+
+<script>
+    // Highlight active month in timeline as user scrolls
+    const sections = document.querySelectorAll('[id^="month-"]');
+    const links = document.querySelectorAll('.feed-timeline a');
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(l => l.classList.remove('active'));
+                const active = document.querySelector(`.feed-timeline a[href="#${entry.target.id}"]`);
+                if (active) active.classList.add('active');
+            }
+        });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => observer.observe(s));
+</script>
 {% endblock %}

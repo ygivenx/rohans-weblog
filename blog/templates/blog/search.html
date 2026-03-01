@@ -52,22 +52,6 @@
         </ul>
         {% endif %}
 
-        {% if results.bookmarks %}
-        <h4>Bookmarks ({{ results.bookmarks|length }})</h4>
-        <ul class="post-list">
-            {% for bookmark in results.bookmarks %}
-            <li class="post-item">
-                <h3 class="post-title">
-                    <a href="{{ bookmark.url }}" target="_blank" rel="noopener noreferrer">{{ bookmark.title }}</a>
-                </h3>
-                {% if bookmark.description %}
-                <div class="post-excerpt">{{ bookmark.description }}</div>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-
         {% if results.feed_items %}
         <h4>Feed Items ({{ results.feed_items|length }})</h4>
         <ul class="post-list">
@@ -87,6 +71,6 @@
         <p>No results found.</p>
     {% endif %}
 {% else %}
-    <p>Enter a search query above to search across blog posts, TIL entries, and bookmarks.</p>
+    <p>Enter a search query above to search across posts, TIL entries, and feed items.</p>
 {% endif %}
 {% endblock %}
