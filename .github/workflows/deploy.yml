@@ -66,6 +66,8 @@ jobs:
             POSTGRES_DB=weblog
             POSTGRES_USER=weblog
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            UMAMI_DB_PASSWORD=${{ secrets.UMAMI_DB_PASSWORD }}
+            UMAMI_APP_SECRET=${{ secrets.UMAMI_APP_SECRET }}
             ENVEOF
 
             # Build and deploy

@@ -452,6 +452,9 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+    {% if not debug %}
+    <script defer src="/analytics/script.js" data-website-id="REPLACE_WITH_WEBSITE_ID"></script>
+    {% endif %}
 </head>
 <body>
     <div class="container">
