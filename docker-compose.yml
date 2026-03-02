@@ -25,6 +25,7 @@ services:
       - media_volume:/app/media
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      SECRET_KEY: ${SECRET_KEY}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
       POSTGRES_DB: ${POSTGRES_DB:-weblog}
