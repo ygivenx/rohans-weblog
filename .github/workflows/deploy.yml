@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run Tests
@@ -51,6 +55,8 @@ jobs:
       VPS_USER: ${{ vars.VPS_USER }}
       VPS_PORT: ${{ vars.VPS_PORT }}
       DJANGO_ALLOWED_HOSTS: ${{ vars.DJANGO_ALLOWED_HOSTS }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      SSL_EMAIL: ${{ vars.SSL_EMAIL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -110,6 +116,29 @@ jobs:
             docker compose build
             docker compose up -d
 
+            # Auto-bootstrap SSL if missing (safe to re-run on every deploy).
+            APP_DOMAIN="${{ env.APP_DOMAIN }}"
+            if [ -z "$APP_DOMAIN" ]; then
+              APP_DOMAIN="$(echo "${{ env.DJANGO_ALLOWED_HOSTS }}" | cut -d',' -f1)"
+            fi
+            if [ -z "$APP_DOMAIN" ]; then
+              echo "APP_DOMAIN could not be resolved."
+              exit 1
+            fi
+            SSL_EMAIL="${{ env.SSL_EMAIL }}"
+            if [ -z "$SSL_EMAIL" ]; then
+              SSL_EMAIL="admin@${APP_DOMAIN}"
+            fi
+
+            if ! docker compose run --rm certbot certificates 2>/dev/null | grep -q "Certificate Name: ${APP_DOMAIN}"; then
+              echo "No certificate for ${APP_DOMAIN}. Bootstrapping SSL..."
+              ./setup-ssl.sh "$SSL_EMAIL" "$APP_DOMAIN"
+            else
+              echo "Certificate for ${APP_DOMAIN} already exists."
+            fi
+
             # Wait and verify
             sleep 10
             docker compose ps
+            docker compose exec -T nginx nginx -t
+            docker compose exec -T web python manage.py check --deploy
