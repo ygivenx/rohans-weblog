@@ -63,6 +63,9 @@ ssh -p $VPS_PORT $VPS_USER@$VPS_IP << 'ENDSSH'
     echo "Starting containers..."
     docker compose up -d
 
+    # Refresh nginx upstream DNS after web container recreation
+    docker compose restart nginx
+
     # Wait for services to be ready
     echo "Waiting for services to start..."
     sleep 10

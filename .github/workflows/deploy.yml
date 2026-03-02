@@ -116,6 +116,9 @@ jobs:
             docker compose build
             docker compose up -d
 
+            # Refresh nginx upstream DNS after web container recreation
+            docker compose restart nginx
+
             # Auto-bootstrap SSL if missing (safe to re-run on every deploy).
             APP_DOMAIN="${{ env.APP_DOMAIN }}"
             if [ -z "$APP_DOMAIN" ]; then
