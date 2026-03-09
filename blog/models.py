@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.urls import reverse
+from django.utils import timezone
 
 
 class Tag(models.Model):
@@ -143,4 +144,90 @@ class FeedItem(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("feed_detail", kwargs={"slug": self.slug})
+        return reverse("blog:feed_detail", kwargs={"slug": self.slug})
+
+
+class ProductUpdate(models.Model):
+    """Normalized store for external product updates (GitHub and Gumroad)."""
+
+    SOURCE_CHOICES = [
+        ("github", "GitHub"),
+        ("gumroad", "Gumroad"),
+    ]
+    KIND_CHOICES = [
+        ("release", "Release"),
+        ("product", "Product"),
+    ]
+
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES)
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    external_id = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
+    summary = models.TextField(blank=True)
+    url = models.URLField()
+    owner = models.CharField(max_length=100, blank=True)
+    repo = models.CharField(max_length=200, blank=True)
+    version = models.CharField(max_length=100, blank=True)
+    price = models.CharField(max_length=50, blank=True)
+    currency = models.CharField(max_length=10, blank=True)
+    product_slug = models.CharField(max_length=200, blank=True)
+    raw_payload = models.JSONField(default=dict, blank=True)
+    published_at = models.DateTimeField(default=timezone.now)
+    is_visible = models.BooleanField(default=True, db_index=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+    mirrored_feed_item = models.OneToOneField(
+        FeedItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="product_update",
+    )
+
+    class Meta:
+        ordering = ["-published_at", "-created_date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "external_id"], name="unique_source_external_id"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_source_display()}: {self.title}"
+
+    @property
+    def display_title(self):
+        if self.source == "github":
+            repo = (
+                f"{self.owner}/{self.repo}" if self.owner and self.repo else self.repo
+            )
+            version = self.version or "release"
+            if repo:
+                return f"`{repo}` -> `{version}`"
+            return f"GitHub release -> `{version}`"
+        return self.title
+
+    @property
+    def display_summary(self):
+        if self.source == "gumroad" and self.summary:
+            return self.summary
+        if self.source == "github" and self.summary:
+            return self.summary
+        return ""
+
+    @property
+    def display_meta(self):
+        if self.source == "github":
+            repo = (
+                f"{self.owner}/{self.repo}" if self.owner and self.repo else self.repo
+            )
+            return f"github · {repo}" if repo else "github"
+        if self.source == "gumroad":
+            if self.price:
+                return f"gumroad · {self.price}"
+            return "gumroad"
+        return self.source
+
+    @property
+    def display_cta_text(self):
+        return "Buy now" if self.source == "gumroad" else "View release"

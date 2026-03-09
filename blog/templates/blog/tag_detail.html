@@ -10,13 +10,13 @@
 {% endif %}
 
 {% if feed_items %}
-<h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px;">Feed</h3>
+<h3 class="section-kicker">Feed</h3>
 <ul class="post-list">
     {% for item in feed_items %}
     <li class="post-item">
         <div class="post-date">
             {{ item.created_date|date:"jS F Y" }}
-            <span style="color: #bbb;">&middot; {{ item.get_content_type_display }}</span>
+            <span class="meta-subtle">&middot; {{ item.get_content_type_display }}</span>
         </div>
         {% if item.title %}
         <h3 class="post-title">
@@ -34,7 +34,7 @@
 {% endif %}
 
 {% if posts %}
-<h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px;">Writing</h3>
+<h3 class="section-kicker">Writing</h3>
 <ul class="post-list">
     {% for post in posts %}
     <li class="post-item">
@@ -48,7 +48,7 @@
 {% endif %}
 
 {% if tils %}
-<h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px;">TIL</h3>
+<h3 class="section-kicker">TIL</h3>
 <ul class="post-list">
     {% for til in tils %}
     <li class="post-item">

@@ -1,0 +1,119 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Products{% endblock %}
+
+{% block extra_css %}
+<style>
+    .products-intro {
+        color: var(--muted);
+        margin-bottom: 16px;
+    }
+    .products-section {
+        margin-top: 30px;
+    }
+    .products-section:first-of-type {
+        margin-top: 0;
+    }
+    .products-kicker {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.82em;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted-2);
+        margin-bottom: 10px;
+    }
+    .products-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .products-item {
+        border-top: 1px solid var(--border-soft);
+        padding: 14px 0;
+    }
+    .products-item:last-child {
+        border-bottom: 1px solid var(--border-soft);
+    }
+    .products-meta {
+        color: var(--muted-2);
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.77em;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
+    .products-title {
+        margin: 0 0 5px;
+        font-size: 1.18em;
+        line-height: 1.34;
+    }
+    .products-title a {
+        color: var(--link);
+    }
+    .products-summary {
+        margin-bottom: 6px;
+    }
+    .products-nerdy {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.92em;
+    }
+    .products-cta {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.86em;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+    .products-cta a {
+        text-decoration: none;
+        border-bottom: 1px solid currentColor;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Products</h2>
+<p class="products-intro">Shipped releases and products from GitHub and Gumroad.</p>
+
+<section class="products-section">
+    <div class="products-kicker">GitHub Releases</div>
+    {% if github_updates %}
+    <ul class="products-list">
+        {% for item in github_updates %}
+        <li class="products-item">
+            <div class="products-meta">{{ item.published_at|date:"j M Y" }} · release</div>
+            <h3 class="products-title products-nerdy"><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.display_title }}</a></h3>
+            {% if item.summary %}
+            <div class="products-summary">{{ item.summary|truncatewords:35 }}</div>
+            {% endif %}
+            <div class="products-meta">{{ item.display_meta }}</div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No GitHub releases yet.</p>
+    {% endif %}
+</section>
+
+<section class="products-section">
+    <div class="products-kicker">Gumroad Products</div>
+    {% if gumroad_updates %}
+    <ul class="products-list">
+        {% for item in gumroad_updates %}
+        <li class="products-item">
+            <div class="products-meta">{{ item.published_at|date:"j M Y" }} · product</div>
+            <h3 class="products-title"><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
+            {% if item.summary %}
+            <div class="products-summary">{{ item.summary|truncatewords:30 }}</div>
+            {% endif %}
+            <div class="products-cta">
+                {% if item.price %}{{ item.price }} · {% endif %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">Buy now</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No Gumroad products yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

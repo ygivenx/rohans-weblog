@@ -17,9 +17,17 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
+from blog.views import martor_local_uploader
 
 urlpatterns = [
+    path(
+        "favicon.ico",
+        RedirectView.as_view(url="/static/icons/favicon.png", permanent=False),
+        name="favicon",
+    ),
     path("admin/", admin.site.urls),
+    path("martor/uploader/", martor_local_uploader, name="martor_uploader"),
     path("martor/", include("martor.urls")),
     path("", include("blog.urls")),
 ]

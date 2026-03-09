@@ -1,4 +1,5 @@
 from django.db.models import Count, Q
+from django.conf import settings
 from .models import Tag
 
 
@@ -15,4 +16,8 @@ def all_tags(request):
     for tag in tags:
         tag.total_count = tag.post_count + tag.til_count + tag.feed_count
 
-    return {"all_tags": [t for t in tags if t.total_count > 0]}
+    return {
+        "all_tags": [t for t in tags if t.total_count > 0],
+        "analytics_website_id": settings.ANALYTICS_WEBSITE_ID,
+        "debug_mode": settings.DEBUG,
+    }

@@ -34,6 +34,14 @@ if not SECRET_KEY:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
+ANALYTICS_WEBSITE_ID = os.environ.get("ANALYTICS_WEBSITE_ID", "").strip()
+GITHUB_WEBHOOK_SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET", "").strip()
+GITHUB_OWNER = os.environ.get("GITHUB_OWNER", "").strip()
+GUMROAD_ACCESS_TOKEN = os.environ.get("GUMROAD_ACCESS_TOKEN", "").strip()
+GUMROAD_WEBHOOK_TOKEN = os.environ.get("GUMROAD_WEBHOOK_TOKEN", "").strip()
+PRODUCTS_FEED_MIRROR = (
+    os.environ.get("PRODUCTS_FEED_MIRROR", "true").strip().lower() == "true"
+)
 
 # Allowed hosts - defaults to localhost for development
 ALLOWED_HOSTS = [
@@ -195,7 +203,7 @@ if not DEBUG:
 # Martor (Markdown Editor) Configuration
 MARTOR_ENABLE_CONFIGS = {
     "emoji": "true",
-    "imgur": "true",
+    "imgur": "false",
     "mention": "false",
     "jquery": "true",
     "living": "false",
@@ -222,7 +230,7 @@ MARTOR_TOOLBAR_BUTTONS = [
     "help",
 ]
 
-# Imgur API for image uploads (free, no account needed for anonymous uploads)
+# Local Martor image upload endpoint (served from MEDIA_URL)
 MARTOR_UPLOAD_URL = "/martor/uploader/"
 MARTOR_IMGUR_CLIENT_ID = os.environ.get("IMGUR_CLIENT_ID", "")
 MARTOR_IMGUR_API_KEY = os.environ.get("IMGUR_API_KEY", "")

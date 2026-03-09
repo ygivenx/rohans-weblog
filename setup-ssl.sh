@@ -18,10 +18,10 @@ fi
 # Step 1: switch to HTTP-only nginx so ACME challenge can be served even without cert files.
 cp nginx.conf "$BACKUP_FILE"
 cp nginx.http-only.conf nginx.conf
-docker compose up -d nginx
+docker compose up -d nginx certbot
 
 # Step 2: get initial certificate.
-docker compose run --rm certbot certonly \
+docker compose exec -T certbot certbot certonly \
     --webroot \
     --webroot-path=/var/www/certbot \
     --email "$EMAIL" \

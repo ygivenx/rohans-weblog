@@ -5,9 +5,9 @@
 {% block content %}
 <h2>Search</h2>
 
-<form method="get" action="{% url 'blog:search' %}" style="margin-bottom: 24px;">
-    <input type="text" name="q" value="{{ query }}" placeholder="Search..." style="padding: 8px; width: 65%; font-size: 1em; font-family: Georgia, serif; border: 1px solid #999; border-radius: 3px;">
-    <button type="submit" style="padding: 8px 16px; font-size: 0.95em; cursor: pointer; font-family: Verdana, sans-serif; border: 1px solid #999; border-radius: 3px; background: #f5f5f5;">Search</button>
+<form method="get" action="{% url 'blog:search' %}" class="search-form">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search..." class="search-input">
+    <button type="submit" class="search-button">Search</button>
 </form>
 
 {% if query or tag %}

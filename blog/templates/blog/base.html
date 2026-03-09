@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,10 @@
     <title>{% block title %}Rohan Singh's Weblog{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'icons/favicon-16x16.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}">
     <script>
         MathJax = {
             tex: {
@@ -26,19 +30,68 @@
             padding: 0;
             box-sizing: border-box;
         }
+        :root {
+            color-scheme: light dark;
+            --bg: #ffffff;
+            --text: #000000;
+            --muted: #666666;
+            --muted-2: #888888;
+            --muted-3: #bbbbbb;
+            --link: #195f00;
+            --link-hover: #003d00;
+            --border: #cccccc;
+            --border-soft: #e8e8e8;
+            --code-bg: #1e1e2e;
+            --code-border: #313244;
+            --code-text: #cdd6f4;
+            --inline-code-bg: #f4f4f4;
+            --inline-code-text: #333333;
+            --table-border: #dddddd;
+            --table-head: #f5f5f5;
+            --table-zebra: #fafafa;
+            --copy-btn-border: #555a66;
+            --copy-btn-bg: #2a2f3e;
+            --copy-btn-bg-hover: #343a4b;
+            --copy-btn-text: #e8ebf3;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f1218;
+                --text: #e6e9ef;
+                --muted: #b1b8c3;
+                --muted-2: #9ea7b3;
+                --muted-3: #808a98;
+                --link: #8fce7a;
+                --link-hover: #b8e8a9;
+                --border: #303745;
+                --border-soft: #252c37;
+                --code-bg: #0d1118;
+                --code-border: #2b3441;
+                --code-text: #d8e0ee;
+                --inline-code-bg: #232a35;
+                --inline-code-text: #e0e6f0;
+                --table-border: #3a4453;
+                --table-head: #1f2732;
+                --table-zebra: #161c25;
+                --copy-btn-border: #5b6678;
+                --copy-btn-bg: #1f2733;
+                --copy-btn-bg-hover: #2b3442;
+                --copy-btn-text: #edf2ff;
+            }
+        }
         body {
-            font-family: Georgia, 'Times New Roman', Times, serif;
-            line-height: 1.55;
-            color: #000;
-            background: #fff;
-            font-size: 16px;
+            font-family: 'Source Serif 4', Georgia, 'Times New Roman', Times, serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            font-size: 18px;
         }
         a {
-            color: #195f00;
+            color: var(--link);
             text-decoration: underline;
         }
         a:hover {
-            color: #003d00;
+            color: var(--link-hover);
         }
         .container {
             max-width: 700px;
@@ -48,51 +101,64 @@
         header {
             padding-bottom: 12px;
             margin-bottom: 20px;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid var(--border);
         }
         header h1 {
             font-size: 1.5em;
             margin-bottom: 2px;
             font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             letter-spacing: -0.02em;
         }
         header h1 a {
-            color: #000;
+            color: var(--text);
             text-decoration: none;
         }
         header h1 a:hover {
             text-decoration: underline;
         }
         .site-description {
-            color: #666;
+            color: var(--muted);
             font-size: 0.8em;
             margin-bottom: 8px;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
         }
         nav {
             margin-top: 6px;
             font-size: 0.8em;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             font-weight: 500;
             letter-spacing: 0.02em;
             text-transform: uppercase;
         }
         nav a {
             margin-right: 16px;
-            color: #195f00;
+            color: var(--link);
             text-decoration: none;
         }
         nav a:hover {
             text-decoration: underline;
         }
         h2 {
-            font-size: 1.2em;
-            margin-top: 20px;
-            margin-bottom: 12px;
-            font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
-            letter-spacing: -0.01em;
+            position: relative;
+            display: inline-block;
+            font-size: 1.55em;
+            margin-top: 24px;
+            margin-bottom: 18px;
+            font-weight: 700;
+            font-family: 'Manrope', sans-serif;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+        }
+        h2::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -8px;
+            width: 44px;
+            height: 2px;
+            background: var(--link);
+            opacity: 0.8;
         }
         .post-list {
             list-style: none;
@@ -100,15 +166,15 @@
         .post-item {
             margin-bottom: 18px;
             padding-bottom: 14px;
-            border-bottom: 1px solid #e8e8e8;
+            border-bottom: 1px solid var(--border-soft);
         }
         .post-item:last-child {
             border-bottom: none;
         }
         .post-date {
-            color: #888;
+            color: var(--muted-2);
             font-size: 0.75em;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             font-weight: 500;
             letter-spacing: 0.02em;
             text-transform: uppercase;
@@ -121,81 +187,84 @@
             font-family: Georgia, 'Times New Roman', Times, serif;
         }
         .post-title a {
-            color: #195f00;
+            color: var(--link);
         }
         .post-meta {
-            color: #888;
+            color: var(--muted-2);
             font-size: 0.75em;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             font-weight: 500;
             margin-bottom: 4px;
         }
         .post-excerpt {
-            color: #333;
+            color: var(--text);
             font-size: 0.95em;
             margin-top: 4px;
         }
         .tags {
             margin-top: 4px;
+            line-height: 1.6;
         }
         .tag {
-            display: inline;
+            display: inline-block;
             font-size: 0.72em;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             font-weight: 500;
-            color: #195f00;
+            color: var(--link);
             letter-spacing: 0.02em;
             text-transform: uppercase;
+            margin-right: 6px;
+            margin-bottom: 3px;
         }
         .tag::after {
-            content: " ";
+            content: "";
         }
         .pagination {
             margin-top: 20px;
             font-size: 0.78em;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             font-weight: 500;
         }
         .pagination a {
             margin-right: 8px;
-            color: #195f00;
+            color: var(--link);
         }
         .pagination .current {
             font-weight: 600;
-            color: #000;
+            color: var(--text);
         }
         .tag-bar {
             margin-top: 16px;
             padding-top: 12px;
-            border-top: 1px solid #e8e8e8;
+            border-top: 1px solid var(--border-soft);
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
         }
         .tag-bar a {
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             font-size: 0.7em;
             font-weight: 500;
             text-decoration: none;
-            color: #555;
+            color: var(--muted);
             letter-spacing: 0.02em;
             text-transform: uppercase;
         }
         .tag-bar a:hover {
-            color: #195f00;
+            color: var(--link);
         }
         .tag-bar a .tag-count {
-            color: #bbb;
+            color: var(--muted-3);
             font-size: 0.85em;
             margin-left: 2px;
         }
         footer {
             margin-top: 40px;
             padding-top: 12px;
-            border-top: 1px solid #ccc;
-            color: #888;
+            border-top: 1px solid var(--border);
+            color: var(--muted-2);
             font-size: 0.75em;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
         }
         .content {
             margin-top: 16px;
@@ -205,7 +274,7 @@
         article h1 {
             font-size: 1.7em;
             font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             letter-spacing: -0.02em;
             margin-bottom: 8px;
             line-height: 1.25;
@@ -217,7 +286,7 @@
             margin-top: 28px;
             margin-bottom: 12px;
             font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             letter-spacing: -0.02em;
         }
         .content h2 {
@@ -225,7 +294,7 @@
             margin-top: 24px;
             margin-bottom: 10px;
             font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
             letter-spacing: -0.01em;
         }
         .content h3 {
@@ -233,21 +302,21 @@
             margin-top: 20px;
             margin-bottom: 8px;
             font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
         }
         .content h4 {
             font-size: 1em;
             margin-top: 16px;
             margin-bottom: 6px;
             font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
         }
         .content h5, .content h6 {
             font-size: 0.95em;
             margin-top: 12px;
             margin-bottom: 6px;
             font-weight: 600;
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Manrope', sans-serif;
         }
         /* Paragraphs */
         .content p {
@@ -273,11 +342,11 @@
         }
         /* Links */
         .content a {
-            color: #195f00;
+            color: var(--link);
             text-decoration: underline;
         }
         .content a:hover {
-            color: #003d00;
+            color: var(--link-hover);
         }
         /* Images */
         .content img {
@@ -287,17 +356,36 @@
         }
         /* Code blocks - Dark Mode */
         .content pre {
-            background: #1e1e2e;
+            background: var(--code-bg);
             padding: 14px;
             border-radius: 4px;
             overflow-x: auto;
-            border: 1px solid #313244;
+            border: 1px solid var(--code-border);
             margin: 1.5em 0;
-            color: #cdd6f4;
+            color: var(--code-text);
+        }
+        .code-block-wrap {
+            position: relative;
+        }
+        .copy-code-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            border: 1px solid var(--copy-btn-border);
+            background: var(--copy-btn-bg);
+            color: var(--copy-btn-text);
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.68em;
+            cursor: pointer;
+        }
+        .copy-code-btn:hover {
+            background: var(--copy-btn-bg-hover);
         }
         .content code {
-            background: #f4f4f4;
-            color: #333;
+            background: var(--inline-code-bg);
+            color: var(--inline-code-text);
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 0.875em;
@@ -311,10 +399,10 @@
         }
         /* Blockquotes */
         .content blockquote {
-            border-left: 3px solid #ccc;
+            border-left: 3px solid var(--border);
             margin: 1.5em 0;
             padding-left: 1em;
-            color: #555;
+            color: var(--muted);
             font-style: italic;
         }
         .content blockquote p {
@@ -331,21 +419,21 @@
         }
         .content table th,
         .content table td {
-            border: 1px solid #ddd;
+            border: 1px solid var(--table-border);
             padding: 6px 10px;
             text-align: left;
         }
         .content table th {
-            background-color: #f5f5f5;
+            background-color: var(--table-head);
             font-weight: bold;
         }
         .content table tr:nth-child(even) {
-            background-color: #fafafa;
+            background-color: var(--table-zebra);
         }
         /* Horizontal rules */
         .content hr {
             border: none;
-            border-top: 1px solid #ccc;
+            border-top: 1px solid var(--border);
             margin: 2em 0;
         }
         /* Strong and emphasis */
@@ -357,8 +445,8 @@
         }
         /* Code highlighting with codehilite - Dark Mode (Catppuccin Mocha) */
         .content .codehilite {
-            background: #1e1e2e;
-            border: 1px solid #313244;
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
             border-radius: 4px;
             padding: 14px;
             margin: 1.5em 0;
@@ -373,7 +461,68 @@
         .content .codehilite code {
             background: none;
             padding: 0;
-            color: #cdd6f4;
+            color: var(--code-text);
+        }
+        .section-kicker {
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted-2);
+            margin: 24px 0 12px;
+        }
+        .meta-subtle {
+            color: var(--muted-3);
+        }
+        .feed-hash-wrap {
+            margin-top: 6px;
+            font-size: 0.8em;
+        }
+        .feed-hash {
+            color: var(--muted-3);
+            text-decoration: none;
+        }
+        .feed-hash:hover {
+            color: var(--link);
+        }
+        .mt-12 {
+            margin-top: 12px;
+        }
+        .mt-24 {
+            margin-top: 24px;
+        }
+        .mt-30 {
+            margin-top: 30px;
+        }
+        .search-form {
+            margin-bottom: 24px;
+        }
+        .search-input {
+            padding: 8px;
+            width: 65%;
+            font-size: 1em;
+            font-family: Georgia, serif;
+            border: 1px solid #999;
+            border-radius: 3px;
+            color: var(--text);
+            background: var(--bg);
+        }
+        .search-button {
+            padding: 8px 16px;
+            font-size: 0.95em;
+            cursor: pointer;
+            font-family: Verdana, sans-serif;
+            border: 1px solid #999;
+            border-radius: 3px;
+            color: var(--text);
+            background: var(--table-head);
+        }
+        @media (prefers-color-scheme: dark) {
+            .search-input,
+            .search-button {
+                border-color: var(--table-border);
+            }
         }
 
         /* Pygments Syntax Highlighting - Dark Theme */
@@ -452,8 +601,8 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
-    {% if not debug %}
-    <script defer src="/analytics/script.js" data-website-id="REPLACE_WITH_WEBSITE_ID"></script>
+    {% if analytics_website_id and not debug_mode %}
+    <script defer src="/analytics/script.js" data-website-id="{{ analytics_website_id }}"></script>
     {% endif %}
 </head>
 <body>
@@ -463,6 +612,7 @@
             <div class="site-description">Writing about software, data science, and things I learn along the way.</div>
             <nav>
                 <a href="{% url 'blog:index' %}">Feed</a>
+                <a href="{% url 'blog:products_list' %}">Products</a>
                 <a href="{% url 'blog:post_list' %}">Writing</a>
                 <a href="{% url 'blog:til_list' %}">TIL</a>
                 <a href="{% url 'blog:about' %}">About</a>
@@ -484,5 +634,40 @@
             <p>&copy; {% now "Y" %} Rohan Singh &middot; <a href="{% url 'blog:search' %}">Search</a></p>
         </footer>
     </div>
+    <script>
+        (function () {
+            const blocks = document.querySelectorAll('.content pre');
+            blocks.forEach((pre) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'code-block-wrap';
+                pre.parentNode.insertBefore(wrapper, pre);
+                wrapper.appendChild(pre);
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'copy-code-btn';
+                button.textContent = 'Copy';
+                wrapper.appendChild(button);
+
+                button.addEventListener('click', async () => {
+                    const text = pre.innerText;
+                    try {
+                        await navigator.clipboard.writeText(text);
+                    } catch (err) {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                    }
+                    button.textContent = 'Copied';
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                    }, 1200);
+                });
+            });
+        })();
+    </script>
 </body>
 </html>

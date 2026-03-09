@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django import forms
 from martor.widgets import AdminMartorWidget
-from .models import BlogPost, TIL, Bookmark, Tag, FeedItem
+from .models import BlogPost, TIL, Bookmark, Tag, FeedItem, ProductUpdate
 
 
 class BlogPostAdminForm(forms.ModelForm):
@@ -144,3 +144,29 @@ class FeedItemAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ["created_date"]
+
+
+@admin.register(ProductUpdate)
+class ProductUpdateAdmin(admin.ModelAdmin):
+    """Admin interface for product updates ingested from external sources."""
+
+    list_display = [
+        "title",
+        "source",
+        "kind",
+        "owner",
+        "repo",
+        "price",
+        "published_at",
+        "is_visible",
+    ]
+    list_filter = ["source", "kind", "is_visible", "published_at"]
+    search_fields = ["title", "external_id", "owner", "repo", "product_slug", "url"]
+    ordering = ["-published_at", "-created_date"]
+    readonly_fields = [
+        "external_id",
+        "raw_payload",
+        "created_date",
+        "updated_date",
+        "mirrored_feed_item",
+    ]

@@ -10,7 +10,7 @@
 
     <div class="post-date">
         {{ item.created_date|date:"jS F Y" }}
-        <span style="color: #999;">&middot; {{ item.get_content_type_display }}</span>
+        <span class="meta-subtle">&middot; {{ item.get_content_type_display }}</span>
     </div>
 
     {% if item.tags.all %}
@@ -22,7 +22,7 @@
     {% endif %}
 
     {% if item.url %}
-    <p style="margin-top: 12px;">
+    <p class="mt-12">
         <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a>
     </p>
     {% endif %}
@@ -32,7 +32,7 @@
     </div>
 </article>
 
-<p style="margin-top: 30px;">
-    <a href="{% url 'blog:feed_list' %}">&larr; Back to Feed</a>
+<p class="mt-30">
+    <a href="{% url 'blog:index' %}">&larr; Back to Feed</a>
 </p>
 {% endblock %}

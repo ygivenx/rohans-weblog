@@ -1,7 +1,23 @@
+import os
+import uuid
+import json
+
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.core.files.storage import default_storage
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
+from django.utils.text import get_valid_filename
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
-from .models import BlogPost, TIL, Bookmark, FeedItem, Tag
+from .models import BlogPost, TIL, Bookmark, FeedItem, Tag, ProductUpdate
+from .product_updates import (
+    verify_github_signature,
+    upsert_github_release,
+    sync_gumroad_products,
+)
 from .search import search_content
 from .utils import render_markdown, POSTS_PER_PAGE, TILS_PER_PAGE, BOOKMARKS_PER_PAGE
 
@@ -213,3 +229,113 @@ def tag_detail(request, slug):
 def about(request):
     """Display the about page."""
     return render(request, "blog/about.html")
+
+
+def products_list(request):
+    """Display product updates from GitHub releases and Gumroad products."""
+    updates = ProductUpdate.objects.filter(is_visible=True).order_by(
+        "-published_at", "-created_date"
+    )
+    github_updates = updates.filter(source="github")
+    gumroad_updates = updates.filter(source="gumroad")
+
+    return render(
+        request,
+        "blog/products_list.html",
+        {
+            "github_updates": github_updates,
+            "gumroad_updates": gumroad_updates,
+            "updates": updates,
+        },
+    )
+
+
+@csrf_exempt
+@require_POST
+def github_webhook(request):
+    """Ingest GitHub release webhooks."""
+    secret = settings.GITHUB_WEBHOOK_SECRET
+    signature = request.headers.get("X-Hub-Signature-256", "")
+    if not verify_github_signature(request.body, signature, secret):
+        return HttpResponseForbidden("Invalid signature")
+
+    event = request.headers.get("X-GitHub-Event", "")
+    if event != "release":
+        return JsonResponse({"status": "ignored", "reason": "unsupported event"})
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON payload")
+
+    if payload.get("action") != "published":
+        return JsonResponse({"status": "ignored", "reason": "action not published"})
+
+    owner = ((payload.get("repository") or {}).get("owner") or {}).get("login", "")
+    expected_owner = settings.GITHUB_OWNER
+    if expected_owner and owner.lower() != expected_owner.lower():
+        return JsonResponse({"status": "ignored", "reason": "owner mismatch"})
+
+    obj, created = upsert_github_release(payload)
+    if not obj:
+        return JsonResponse({"status": "ignored", "reason": "invalid release payload"})
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "created": created,
+            "source": obj.source,
+            "kind": obj.kind,
+            "external_id": obj.external_id,
+        }
+    )
+
+
+@csrf_exempt
+@require_POST
+def gumroad_webhook(request):
+    """
+    Receive Gumroad webhooks and trigger product catalog sync.
+
+    Gumroad payloads vary by event type; for this app we refresh catalog
+    via API so listed products remain source-of-truth.
+    """
+    expected_token = settings.GUMROAD_WEBHOOK_TOKEN
+    provided = (
+        request.POST.get("token")
+        or request.POST.get("password")
+        or request.headers.get("X-Gumroad-Token", "")
+    )
+    if expected_token and provided != expected_token:
+        return HttpResponseForbidden("Invalid Gumroad token")
+
+    stats = sync_gumroad_products()
+    return JsonResponse({"status": "ok", **stats})
+
+
+@login_required
+@require_POST
+def martor_local_uploader(request):
+    """Upload markdown images to local MEDIA storage for admin users."""
+    image = request.FILES.get("markdown-image-upload")
+    if not image:
+        return JsonResponse({"status": 400, "error": "No image uploaded."}, status=400)
+
+    if not image.content_type.startswith("image/"):
+        return JsonResponse({"status": 400, "error": "Invalid file type."}, status=400)
+
+    max_size = 10 * 1024 * 1024
+    if image.size > max_size:
+        return JsonResponse(
+            {"status": 400, "error": "Image exceeds 10MB limit."}, status=400
+        )
+
+    base_name = get_valid_filename(os.path.basename(image.name))
+    upload_name = f"{uuid.uuid4().hex}_{base_name}"
+    relative_path = os.path.join("uploads", "editor", upload_name)
+    saved_path = default_storage.save(relative_path, image)
+    public_url = settings.MEDIA_URL + saved_path
+
+    return JsonResponse(
+        {"status": 200, "link": public_url, "name": os.path.basename(saved_path)}
+    )

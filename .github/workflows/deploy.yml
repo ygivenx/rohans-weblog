@@ -47,6 +47,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      GITHUB_WEBHOOK_SECRET: ${{ secrets.WEBHOOK_GITHUB_SECRET }}
+      GITHUB_OWNER: ${{ vars.GH_OWNER }}
+      GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
+      GUMROAD_WEBHOOK_TOKEN: ${{ secrets.GUMROAD_WEBHOOK_TOKEN }}
+      PRODUCTS_FEED_MIRROR: ${{ vars.PRODUCTS_FEED_MIRROR }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       UMAMI_DB_PASSWORD: ${{ secrets.UMAMI_DB_PASSWORD }}
@@ -67,6 +72,10 @@ jobs:
             DJANGO_SECRET_KEY
             VPS_SSH_KEY
             POSTGRES_PASSWORD
+            GITHUB_WEBHOOK_SECRET
+            GITHUB_OWNER
+            GUMROAD_ACCESS_TOKEN
+            GUMROAD_WEBHOOK_TOKEN
             UMAMI_DB_PASSWORD
             UMAMI_APP_SECRET
             VPS_HOST
@@ -92,6 +101,7 @@ jobs:
           username: ${{ env.VPS_USER }}
           key: ${{ env.VPS_SSH_KEY }}
           port: ${{ env.VPS_PORT }}
+          command_timeout: 45m
           script: |
             set -e
             cd /opt/rohans-weblog
@@ -108,6 +118,11 @@ jobs:
             POSTGRES_DB=weblog
             POSTGRES_USER=weblog
             POSTGRES_PASSWORD=${{ env.POSTGRES_PASSWORD }}
+            GITHUB_WEBHOOK_SECRET=${{ env.GITHUB_WEBHOOK_SECRET }}
+            GITHUB_OWNER=${{ env.GITHUB_OWNER }}
+            GUMROAD_ACCESS_TOKEN=${{ env.GUMROAD_ACCESS_TOKEN }}
+            GUMROAD_WEBHOOK_TOKEN=${{ env.GUMROAD_WEBHOOK_TOKEN }}
+            PRODUCTS_FEED_MIRROR=${{ env.PRODUCTS_FEED_MIRROR }}
             UMAMI_DB_PASSWORD=${{ env.UMAMI_DB_PASSWORD }}
             UMAMI_APP_SECRET=${{ env.UMAMI_APP_SECRET }}
             ENVEOF
@@ -133,9 +148,20 @@ jobs:
               SSL_EMAIL="admin@${APP_DOMAIN}"
             fi
 
-            if ! docker compose run --rm certbot certificates 2>/dev/null | grep -q "Certificate Name: ${APP_DOMAIN}"; then
-              echo "No certificate for ${APP_DOMAIN}. Bootstrapping SSL..."
-              ./setup-ssl.sh "$SSL_EMAIL" "$APP_DOMAIN"
+            CERT_EXISTS=0
+            if timeout 30s docker compose exec -T certbot certbot certificates >/tmp/certbot-certs.txt 2>/dev/null; then
+              if grep -q "Certificate Name: ${APP_DOMAIN}" /tmp/certbot-certs.txt; then
+                CERT_EXISTS=1
+              fi
+            else
+              echo "Skipping certbot certificate check (timeout/unavailable)."
+            fi
+
+            if [ "$CERT_EXISTS" -eq 0 ]; then
+              echo "No certificate detected for ${APP_DOMAIN}. Attempting SSL bootstrap..."
+              if ! timeout 8m ./setup-ssl.sh "$SSL_EMAIL" "$APP_DOMAIN"; then
+                echo "SSL bootstrap timed out/failed; continuing deployment."
+              fi
             else
               echo "Certificate for ${APP_DOMAIN} already exists."
             fi

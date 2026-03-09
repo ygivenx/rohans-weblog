@@ -17,33 +17,64 @@
     }
     .feed-timeline a {
         display: block;
-        font-family: 'Montserrat', sans-serif;
+        font-family: 'Manrope', sans-serif;
         font-size: 0.7em;
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.03em;
-        color: #bbb;
+        color: var(--muted-3);
         text-decoration: none;
         margin-bottom: 8px;
         transition: color 0.1s;
     }
     .feed-timeline a:hover,
     .feed-timeline a.active {
-        color: #195f00;
+        color: var(--link);
     }
     .feed-month-label {
-        font-family: 'Montserrat', sans-serif;
+        font-family: 'Manrope', sans-serif;
         font-size: 0.72em;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #bbb;
+        color: var(--muted-3);
         margin: 28px 0 12px;
         padding-bottom: 6px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--border-soft);
     }
     .feed-month-label:first-child {
         margin-top: 0;
+    }
+    .feed-content-wrap {
+        position: relative;
+    }
+    .feed-content-collapsed {
+        max-height: 360px;
+        overflow: hidden;
+    }
+    .feed-content-collapsed::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 72px;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--bg));
+        pointer-events: none;
+    }
+    .feed-expand-toggle {
+        margin-top: 2px;
+        background: none;
+        border: 0;
+        color: var(--link);
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        font-size: 0.92em;
+        font-weight: normal;
+        cursor: pointer;
+        padding: 0;
+    }
+    .feed-expand-toggle:hover {
+        text-decoration: underline;
     }
     @media (max-width: 600px) {
         .feed-layout {
@@ -70,7 +101,7 @@
                 <li class="post-item">
                     <div class="post-date">
                         {{ item.created_date|date:"j F" }}
-                        <span style="color: #ccc;">&middot; {{ item.get_content_type_display }}</span>
+                        <span class="meta-subtle">&middot; {{ item.get_content_type_display }}</span>
                     </div>
                     {% if item.title %}
                     <h3 class="post-title">
@@ -81,9 +112,12 @@
                         {% endif %}
                     </h3>
                     {% endif %}
-                    <div class="content">
-                        {{ item.body_html|safe }}
+                    <div class="feed-content-wrap">
+                        <div class="content js-feed-content">
+                            {{ item.body_html|safe }}
+                        </div>
                     </div>
+                    <button type="button" class="feed-expand-toggle js-feed-expand-toggle" hidden>&hellip; more</button>
                     {% if item.content_type == "link" and item.url and not item.title %}
                     <p><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a></p>
                     {% endif %}
@@ -94,8 +128,8 @@
                         {% endfor %}
                     </div>
                     {% endif %}
-                    <div style="margin-top: 6px; font-size: 0.8em;">
-                        <a href="{% url 'blog:feed_detail' item.slug %}" style="color: #ddd;">#</a>
+                    <div class="feed-hash-wrap">
+                        <a href="{% url 'blog:feed_detail' item.slug %}" class="feed-hash">#</a>
                     </div>
                 </li>
                 {% endfor %}
@@ -128,5 +162,26 @@
         });
     }, { rootMargin: '-20% 0px -70% 0px' });
     sections.forEach(s => observer.observe(s));
+
+    // Collapse long feed items with expandable toggle
+    const FEED_COLLAPSE_HEIGHT = 360;
+    const feedContents = document.querySelectorAll('.js-feed-content');
+    feedContents.forEach((content) => {
+        if (content.scrollHeight <= FEED_COLLAPSE_HEIGHT) {
+            return;
+        }
+
+        content.classList.add('feed-content-collapsed');
+        const toggle = content.closest('.post-item').querySelector('.js-feed-expand-toggle');
+        if (!toggle) {
+            return;
+        }
+
+        toggle.hidden = false;
+        toggle.addEventListener('click', () => {
+            const isCollapsed = content.classList.toggle('feed-content-collapsed');
+            toggle.textContent = isCollapsed ? '... more' : 'less';
+        });
+    });
 </script>
 {% endblock %}

@@ -5,43 +5,84 @@
 
 {% block extra_css %}
 <style>
-    .about-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 28px;
-        margin-bottom: 28px;
+    .about-wrap {
+        margin-top: 4px;
     }
-    .profile-sketch {
-        flex-shrink: 0;
+    .about-lede {
+        font-size: 1.08em;
+        line-height: 1.75;
+        margin-bottom: 20px;
     }
-    .profile-sketch img {
-        width: 140px;
-        height: 140px;
-        border-radius: 50%;
-        filter: grayscale(100%) contrast(1.1);
-        border: 2px solid #333;
-        box-shadow: 3px 3px 0 #ccc;
-        transition: filter 0.3s ease;
+    .about-grid {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 20px;
+        align-items: start;
+        margin-bottom: 26px;
     }
-    .profile-sketch img:hover {
-        filter: grayscale(0%) contrast(1);
+    .about-avatar {
+        width: 128px;
+        height: 128px;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 1px solid var(--border-soft);
     }
-    .about-intro {
-        flex: 1;
+    .about-meta {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.78em;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted-2);
+        margin-top: 10px;
     }
-    .about-intro p:first-child {
-        font-size: 1.1em;
-        margin-bottom: 0.8em;
+    .about-section {
+        margin: 28px 0;
+        padding-top: 14px;
+        border-top: 1px solid var(--border-soft);
     }
-    @media (max-width: 500px) {
-        .about-header {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
+    .about-section h3 {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.86em;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted-2);
+        margin-bottom: 12px;
+    }
+    .about-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .about-list li {
+        padding: 8px 0;
+        border-bottom: 1px dotted var(--border-soft);
+    }
+    .about-list li:last-child {
+        border-bottom: 0;
+    }
+    .about-list .label {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.83em;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted-2);
+        margin-right: 8px;
+    }
+    .about-closing {
+        margin-top: 24px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border-soft);
+        color: var(--muted);
+    }
+    @media (max-width: 640px) {
+        .about-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
         }
-        .profile-sketch img {
-            width: 120px;
-            height: 120px;
+        .about-avatar {
+            width: 108px;
+            height: 108px;
         }
     }
 </style>
@@ -50,51 +91,43 @@
 {% block content %}
 <h2>About</h2>
 
-<div class="content">
-    <div class="about-header">
-        <div class="profile-sketch">
-            <img src="{% static 'images/rohan-profile.jpg' %}" alt="Rohan Singh">
+<div class="content about-wrap">
+    <div class="about-grid">
+        <div>
+            <img class="about-avatar" src="{% static 'images/rohan-profile.jpg' %}" alt="Rohan Singh">
+            <div class="about-meta">Seattle, Washington</div>
         </div>
-        <div class="about-intro">
-            <p>
-                Hi, I'm <strong>Rohan Singh</strong> — a software engineer and data scientist passionate about 
-                building things that matter.
+        <div>
+            <p class="about-lede">
+                I'm <strong>Rohan Singh</strong>, a software engineer and data scientist working at the intersection of
+                AI, product engineering, and healthcare.
             </p>
             <p>
-                I work at the intersection of machine learning, software engineering, and healthcare. 
-                Currently, I'm exploring the frontiers of AI agents, LLMs, and how they can augment 
-                human capabilities.
+                This weblog is my working notebook: long-form writing, quick learnings, and practical experiments.
+                I care most about clear systems, useful tools, and ideas that survive contact with real constraints.
             </p>
         </div>
     </div>
 
-    <h3>What I Do</h3>
-    <ul>
-        <li>Build AI-powered tools and applications</li>
-        <li>Research and experiment with large language models</li>
-        <li>Write about software, data science, and lessons learned</li>
-        <li>Create open-source projects</li>
-    </ul>
+    <section class="about-section">
+        <h3>Now</h3>
+        <ul class="about-list">
+            <li>Building AI systems for healthcare workflows, including support for clinical trial operations.</li>
+            <li>Developing predictive models for disease risk, progression, and care planning.</li>
+            <li>Exploring reliable agentic workflows, retrieval systems, and evaluation loops for high-stakes use cases.</li>
+        </ul>
+    </section>
 
-    <h3>Projects</h3>
-    <p>Some things I've built:</p>
-    <ul>
-        <li><a href="https://github.com/ygivenx/HardCopy">HardCopy</a> — iOS app for copying text from physical books and printouts</li>
-        <li><a href="https://github.com/ygivenx/all-about-agents">All About Agents</a> — Exploring the world of AI agents</li>
-        <li><a href="https://github.com/ygivenx/vibe-coding-tools">Vibe Coding Tools</a> — Tools and settings for AI-assisted development</li>
-    </ul>
+    <section class="about-section">
+        <h3>Connect</h3>
+        <ul class="about-list">
+            <li><span class="label">GitHub</span><a href="https://github.com/ygivenx">github.com/ygivenx</a></li>
+            <li><span class="label">X</span><a href="https://twitter.com/ygivenx">@ygivenx</a></li>
+        </ul>
+    </section>
 
-    <h3>Connect</h3>
-    <ul>
-        <li>Twitter: <a href="https://twitter.com/ygivenx">@ygivenx</a></li>
-        <li>GitHub: <a href="https://github.com/ygivenx">ygivenx</a></li>
-    </ul>
-
-    <hr>
-
-    <p>
-        This blog is where I share my thoughts, learnings, and occasional experiments. 
-        Feel free to reach out if you'd like to chat!
+    <p class="about-closing">
+        If something here resonates, reach out. I like collaborating with people who care about depth and execution.
     </p>
 </div>
 {% endblock %}

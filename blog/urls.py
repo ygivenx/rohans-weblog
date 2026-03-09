@@ -5,6 +5,7 @@ app_name = "blog"
 
 urlpatterns = [
     path("", views.feed_list, name="index"),
+    path("products/", views.products_list, name="products_list"),
     path("posts/", views.post_list, name="post_list"),
     path("posts/<slug:slug>/", views.post_detail, name="post_detail"),
     path("til/", views.til_list, name="til_list"),
@@ -13,4 +14,6 @@ urlpatterns = [
     path("tags/<slug:slug>/", views.tag_detail, name="tag_detail"),
     path("search/", views.search, name="search"),
     path("about/", views.about, name="about"),
+    path("webhooks/github/", views.github_webhook, name="github_webhook"),
+    path("webhooks/gumroad/", views.gumroad_webhook, name="gumroad_webhook"),
 ]
