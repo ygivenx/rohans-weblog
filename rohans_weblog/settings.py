@@ -34,8 +34,8 @@ if not SECRET_KEY:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
-ANALYTICS_WEBSITE_ID = os.environ.get("ANALYTICS_WEBSITE_ID", "").strip()
-GITHUB_WEBHOOK_SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET", "").strip()
+
+GITHUB_WEBHOOK_SECRET = os.environ.get("WEBHOOK_GITHUB_SECRET", "").strip()
 GITHUB_OWNER = os.environ.get("GITHUB_OWNER", "").strip()
 GUMROAD_ACCESS_TOKEN = os.environ.get("GUMROAD_ACCESS_TOKEN", "").strip()
 GUMROAD_WEBHOOK_TOKEN = os.environ.get("GUMROAD_WEBHOOK_TOKEN", "").strip()

@@ -18,6 +18,5 @@ def all_tags(request):
 
     return {
         "all_tags": [t for t in tags if t.total_count > 0],
-        "analytics_website_id": settings.ANALYTICS_WEBSITE_ID,
         "debug_mode": settings.DEBUG,
     }

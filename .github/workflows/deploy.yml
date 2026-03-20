@@ -47,15 +47,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-      GITHUB_WEBHOOK_SECRET: ${{ secrets.WEBHOOK_GITHUB_SECRET }}
+      WEBHOOK_GITHUB_SECRET: ${{ secrets.WEBHOOK_GITHUB_SECRET }}
       GITHUB_OWNER: ${{ vars.GH_OWNER }}
       GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
       GUMROAD_WEBHOOK_TOKEN: ${{ secrets.GUMROAD_WEBHOOK_TOKEN }}
       PRODUCTS_FEED_MIRROR: ${{ vars.PRODUCTS_FEED_MIRROR }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      UMAMI_DB_PASSWORD: ${{ secrets.UMAMI_DB_PASSWORD }}
-      UMAMI_APP_SECRET: ${{ secrets.UMAMI_APP_SECRET }}
       VPS_HOST: ${{ vars.VPS_HOST }}
       VPS_USER: ${{ vars.VPS_USER }}
       VPS_PORT: ${{ vars.VPS_PORT }}
@@ -72,12 +70,10 @@ jobs:
             DJANGO_SECRET_KEY
             VPS_SSH_KEY
             POSTGRES_PASSWORD
-            GITHUB_WEBHOOK_SECRET
+            WEBHOOK_GITHUB_SECRET
             GITHUB_OWNER
             GUMROAD_ACCESS_TOKEN
             GUMROAD_WEBHOOK_TOKEN
-            UMAMI_DB_PASSWORD
-            UMAMI_APP_SECRET
             VPS_HOST
             VPS_USER
             VPS_PORT
@@ -118,18 +114,16 @@ jobs:
             POSTGRES_DB=weblog
             POSTGRES_USER=weblog
             POSTGRES_PASSWORD=${{ env.POSTGRES_PASSWORD }}
-            GITHUB_WEBHOOK_SECRET=${{ env.GITHUB_WEBHOOK_SECRET }}
+            WEBHOOK_GITHUB_SECRET=${{ env.WEBHOOK_GITHUB_SECRET }}
             GITHUB_OWNER=${{ env.GITHUB_OWNER }}
             GUMROAD_ACCESS_TOKEN=${{ env.GUMROAD_ACCESS_TOKEN }}
             GUMROAD_WEBHOOK_TOKEN=${{ env.GUMROAD_WEBHOOK_TOKEN }}
             PRODUCTS_FEED_MIRROR=${{ env.PRODUCTS_FEED_MIRROR }}
-            UMAMI_DB_PASSWORD=${{ env.UMAMI_DB_PASSWORD }}
-            UMAMI_APP_SECRET=${{ env.UMAMI_APP_SECRET }}
             ENVEOF
 
             # Build and deploy
             docker compose build
-            docker compose up -d
+            docker compose up -d --remove-orphans
 
             # Refresh nginx upstream DNS after web container recreation
             docker compose restart nginx

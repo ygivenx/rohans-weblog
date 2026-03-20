@@ -601,9 +601,6 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
-    {% if analytics_website_id and not debug_mode %}
-    <script defer src="/analytics/script.js" data-website-id="{{ analytics_website_id }}"></script>
-    {% endif %}
 </head>
 <body>
     <div class="container">
