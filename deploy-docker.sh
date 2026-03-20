@@ -61,7 +61,7 @@ ssh -p $VPS_PORT $VPS_USER@$VPS_IP << 'ENDSSH'
     docker compose build
 
     echo "Starting containers..."
-    docker compose up -d
+    docker compose up -d --remove-orphans
 
     # Refresh nginx upstream DNS after web container recreation
     docker compose restart nginx
