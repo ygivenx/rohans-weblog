@@ -8,7 +8,7 @@ bleach==6.3.0
     #   martor
 brotli==1.2.0
     # via whitenoise
-certifi==2026.1.4
+certifi==2026.10.23
     # via requests
 charset-normalizer==3.4.4
     # via requests
