@@ -52,6 +52,22 @@
         </ul>
         {% endif %}
 
+        {% if results.briefings %}
+        <h4>Daily Briefings ({{ results.briefings|length }})</h4>
+        <ul class="post-list">
+            {% for briefing in results.briefings %}
+            <li class="post-item">
+                <h3 class="post-title">
+                    <a href="{% url 'blog:briefing_detail' briefing.slug %}">{{ briefing.title }}</a>
+                </h3>
+                <div class="post-meta">
+                    {{ briefing.briefing_date|date:"F d, Y" }}{% if briefing.signal_count %} &middot; {{ briefing.signal_count }} signals{% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
         {% if results.feed_items %}
         <h4>Feed Items ({{ results.feed_items|length }})</h4>
         <ul class="post-list">

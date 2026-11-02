@@ -1,5 +1,5 @@
 from django.db.models import Q
-from .models import BlogPost, TIL, Bookmark, FeedItem
+from .models import BlogPost, TIL, Bookmark, FeedItem, DailyBriefing
 
 
 def _build_text_search_query(query, fields):
@@ -88,6 +88,7 @@ def search_content(query, tag_slug=None):
             "tils": TIL.objects.none(),
             "bookmarks": Bookmark.objects.none(),
             "feed_items": FeedItem.objects.none(),
+            "briefings": DailyBriefing.objects.none(),
         }
 
     # Search in BlogPost (published only)
@@ -145,9 +146,27 @@ def search_content(query, tag_slug=None):
         FeedItem.objects.filter(feed_filter).distinct().order_by("-created_date")
     )
 
+    briefing_filter = _build_combined_filter(
+        query,
+        tag_slug,
+        [
+            "title__icontains",
+            "executive_summary_md__icontains",
+            "sanitized_html__icontains",
+            "tags__name__icontains",
+        ],
+    )
+    briefings = (
+        DailyBriefing.objects.filter(is_published=True)
+        .filter(briefing_filter)
+        .distinct()
+        .order_by("-briefing_date", "-created_date")
+    )
+
     return {
         "posts": posts,
         "tils": tils,
         "bookmarks": bookmarks,
         "feed_items": feed_items,
+        "briefings": briefings,
     }

@@ -42,6 +42,14 @@ GUMROAD_WEBHOOK_TOKEN = os.environ.get("GUMROAD_WEBHOOK_TOKEN", "").strip()
 PRODUCTS_FEED_MIRROR = (
     os.environ.get("PRODUCTS_FEED_MIRROR", "true").strip().lower() == "true"
 )
+GMAIL_USER = os.environ.get("GMAIL_USER", "").strip() or "rohanmyself@gmail.com"
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
+BRIEFING_EMAIL_SUBJECT = os.environ.get(
+    "BRIEFING_EMAIL_SUBJECT", "BRIEFING_AUTO_PUBLISH"
+).strip()
+BRIEFINGS_FEED_MIRROR = (
+    os.environ.get("BRIEFINGS_FEED_MIRROR", "true").strip().lower() == "true"
+)
 
 # Allowed hosts - defaults to localhost for development
 ALLOWED_HOSTS = [

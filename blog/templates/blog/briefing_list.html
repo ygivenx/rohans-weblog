@@ -1,0 +1,197 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Daily Intelligence Briefings — Rohan Singh{% endblock %}
+
+{% block extra_css %}
+<style>
+    .briefings-intro {
+        color: var(--muted);
+        margin-bottom: 14px;
+    }
+    .briefings-utility-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border: 1px solid var(--border-soft);
+        border-radius: 4px;
+        background: var(--table-zebra);
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.78em;
+        margin-bottom: 24px;
+    }
+    .briefings-utility-links a {
+        font-weight: 600;
+        margin-right: 12px;
+    }
+    .briefing-hero {
+        border: 1px solid var(--border);
+        border-top: 3px solid var(--link);
+        border-radius: 4px;
+        padding: 18px;
+        margin-bottom: 30px;
+        background: var(--bg);
+    }
+    .briefing-kicker {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72em;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--link);
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .briefing-hero-title {
+        font-family: 'Manrope', sans-serif;
+        font-size: 1.35em;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 6px;
+    }
+    .briefing-hero-title a {
+        color: var(--text);
+        text-decoration: none;
+    }
+    .briefing-hero-title a:hover {
+        color: var(--link);
+        text-decoration: underline;
+    }
+    .briefing-meta {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.76em;
+        color: var(--muted-2);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 12px;
+    }
+    .briefing-cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 14px 0;
+    }
+    .briefing-btn-primary {
+        display: inline-block;
+        background: var(--link);
+        color: #ffffff !important;
+        text-decoration: none !important;
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.82em;
+        font-weight: 700;
+        padding: 7px 14px;
+        border-radius: 4px;
+    }
+    .briefing-btn-primary:hover {
+        background: var(--link-hover);
+    }
+    .briefing-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 8px;
+        margin: 14px 0;
+    }
+    .briefing-metric-box {
+        border: 1px solid var(--border-soft);
+        border-radius: 3px;
+        padding: 8px 10px;
+        background: var(--table-zebra);
+    }
+    .briefing-metric-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.92em;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .briefing-metric-desc {
+        font-size: 0.74em;
+        line-height: 1.35;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+    .briefing-summary {
+        font-size: 0.92em;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Daily Intelligence Briefings</h2>
+<p class="briefings-intro">
+    Executive daily synthesis of frontier AI, volatile macro markets, high-performance engineering systems, and global signals — produced autonomously by my Gemini agent and generated with ❤️ from Seattle, WA.
+</p>
+
+<div class="briefings-utility-bar">
+    <div>
+        <strong>⚡ Personal Daily Hub:</strong> Bookmark <a href="{% url 'blog:briefing_latest' %}"><code>/briefing/</code></a> to always open today's live interactive edition &amp; audio player.
+    </div>
+    <div class="briefings-utility-links">
+        <a href="{% url 'blog:briefing_latest' %}">Today's Live Briefing &rarr;</a>
+        <a href="{% url 'blog:briefing_rss' %}">RSS Feed</a>
+    </div>
+</div>
+
+{% if latest_briefing %}
+<section class="briefing-hero">
+    <div class="briefing-kicker">Latest Edition &middot; {{ latest_briefing.briefing_date|date:"l, F j, Y" }}</div>
+    <h3 class="briefing-hero-title">
+        <a href="{% url 'blog:briefing_detail' latest_briefing.slug %}">{{ latest_briefing.title }}</a>
+    </h3>
+    <div class="briefing-meta">
+        {% if latest_briefing.edition_meta %}{{ latest_briefing.edition_meta }} &middot; {% endif %}
+        {% if latest_briefing.signal_count %}{{ latest_briefing.signal_count }} Synthesized Signals &middot; {% endif %}
+        Interactive Voice Studio Included
+    </div>
+
+    <div class="briefing-cta-row">
+        <a href="{% url 'blog:briefing_detail' latest_briefing.slug %}" class="briefing-btn-primary">
+            🎙️ Open Interactive Briefing &amp; Voice Studio ({{ latest_briefing.signal_count }} Signals) &rarr;
+        </a>
+    </div>
+
+    {% if latest_briefing.metrics_json %}
+    <div class="briefing-metrics-grid">
+        {% for m in latest_briefing.metrics_json|slice:":6" %}
+        <div class="briefing-metric-box">
+            <div class="briefing-metric-val">{{ m.value }}</div>
+            <div class="briefing-metric-desc">{{ m.desc }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if latest_briefing.summary_html %}
+    <div class="content briefing-summary">
+        {{ latest_briefing.summary_html|safe }}
+    </div>
+    {% endif %}
+</section>
+{% else %}
+<p>No daily briefings published yet.</p>
+{% endif %}
+
+{% if archive_briefings %}
+<h3 class="section-kicker">Archive</h3>
+<ul class="post-list">
+    {% for item in archive_briefings %}
+    <li class="post-item">
+        <div class="post-date">
+            {{ item.briefing_date|date:"j M Y" }}
+            {% if item.signal_count %}<span class="meta-subtle">&middot; {{ item.signal_count }} signals</span>{% endif %}
+            {% if item.edition_meta %}<span class="meta-subtle">&middot; {{ item.edition_meta }}</span>{% endif %}
+        </div>
+        <h3 class="post-title">
+            <a href="{% url 'blog:briefing_detail' item.slug %}">{{ item.title }}</a>
+        </h3>
+        {% if item.summary_html %}
+        <div class="content briefing-summary">
+            {{ item.summary_html|safe }}
+        </div>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

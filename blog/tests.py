@@ -1,13 +1,15 @@
+import email.message
 import hashlib
 import hmac
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from blog.models import FeedItem, ProductUpdate
+from blog.briefings import ingest_briefing_html, sync_briefing_from_gmail
+from blog.models import DailyBriefing, FeedItem, ProductUpdate
 from blog.product_updates import sync_gumroad_products
 
 TEST_STORAGES = {
@@ -159,3 +161,116 @@ class ProductsPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "GitHub Releases")
         self.assertContains(response, "Gumroad Products")
+
+
+SAMPLE_BRIEFING_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Daily Intelligence Briefing • October 31, 2026</title>
+<style>body { color: #111; }</style>
+</head>
+<body>
+<header class="masthead">
+<div class="masthead-meta">
+<span>The Daily Intelligence Desk</span>
+<span>Vol. XLIV • No. 304</span>
+<span>Saturday, October 31, 2026</span>
+</div>
+</header>
+<div class="signal-grid" id="execSummaryGrid">
+<div class="signal-item">
+<div class="signal-label">Genie 4 World Model</div>
+<div class="signal-text">Google debuts Genie 4 and boots orbital TPUs.</div>
+</div>
+</div>
+<div class="metric-strip">
+<div class="metric-card accent-blue">
+<div class="metric-value">92% vs. 21.3%</div>
+<div class="metric-desc">API gross margin vs sub break-even</div>
+</div>
+</div>
+<article class="briefing-card" id="card-1" data-section-name="Priority 1">
+<div>
+<span class="card-source-badge" title="lspace@mail.beehiiv.com">AINews</span>
+<button type="button" class="card-listen-btn" data-listen-card="card-1">🔊 Listen</button>
+<h3 class="card-headline">Anthropic Launches Claude Ultra</h3>
+<p class="card-synthesis">Synthesis text.</p>
+<div class="why-matters-box"><span class="why-matters-text">Unit economics matter.</span></div>
+</div>
+<div class="card-footer">
+<a href="https://x.com/claudeai/status/1" class="card-link">Read →</a>
+<a href="https://mail.google.com/mail/?authuser=rohanmyself@gmail.com#all/thread-f:123" class="card-gmail-link">✉️ Email ↗</a>
+</div>
+</article>
+<table>
+<tbody>
+<tr>
+<td class="ledger-num">1</td>
+<td><span class="ledger-pub-name">AINews</span><span class="ledger-sender-email">lspace@mail.beehiiv.com</span></td>
+<td class="ledger-subject-cell"><a href="https://mail.google.com/mail/?authuser=rohanmyself@gmail.com#all/thread-f:123" target="_blank" rel="noopener noreferrer" class="ledger-link">Headline 1</a></td>
+<td><a href="https://mail.google.com/mail/?authuser=rohanmyself@gmail.com#all/thread-f:123" class="ledger-verify-btn">View Email ↗</a> | <a href="https://x.com/claudeai/status/1" class="ledger-verify-btn">Web ↗</a></td>
+</tr>
+</tbody>
+</table>
+<footer class="footer">
+<div class="footer-title">The Daily Intelligence Desk</div>
+<p class="footer-text">Original footer text.</p>
+<p class="footer-copy">Volume XLIV • Edition 302 • Sammamish, Washington • Saturday, October 31, 2026</p>
+</footer>
+</body>
+</html>"""
+
+
+@override_settings(
+    GMAIL_USER="rohanmyself@gmail.com",
+    GMAIL_APP_PASSWORD="app-password-16ch",
+    BRIEFINGS_FEED_MIRROR=True,
+    STORAGES=TEST_STORAGES,
+)
+class DailyBriefingTests(TestCase):
+    def test_ingest_strips_emails_and_replaces_location(self):
+        briefing, created = ingest_briefing_html(SAMPLE_BRIEFING_HTML)
+        self.assertTrue(created)
+        self.assertEqual(briefing.slug, "2026-10-31")
+        self.assertEqual(briefing.signal_count, 1)
+        self.assertNotIn("rohanmyself", briefing.sanitized_html)
+        self.assertNotIn("mail.google.com", briefing.sanitized_html)
+        self.assertNotIn("lspace@mail.beehiiv.com", briefing.sanitized_html)
+        self.assertNotIn("Sammamish", briefing.sanitized_html)
+        self.assertIn("Generated with ❤️ from Seattle, WA", briefing.sanitized_html)
+        self.assertIn("card-share-btn", briefing.sanitized_html)
+        self.assertIsNotNone(briefing.mirrored_feed_item)
+
+    @patch("blog.briefings.imaplib.IMAP4_SSL")
+    def test_sync_briefing_from_gmail_and_routes(self, mock_imap_cls):
+        msg = email.message.EmailMessage()
+        msg["Subject"] = "BRIEFING_AUTO_PUBLISH"
+        msg["From"] = "rohanmyself@gmail.com"
+        msg["To"] = "rohanmyself@gmail.com"
+        msg.set_content(f"```html\n{SAMPLE_BRIEFING_HTML}\n```")
+        raw_bytes = msg.as_bytes()
+
+        mock_imap = MagicMock()
+        mock_imap_cls.return_value = mock_imap
+        mock_imap.select.side_effect = [("OK", [b"1"]), ("OK", [b"0"])]
+        mock_imap.search.side_effect = [("OK", [b"1"]), ("OK", [b""])]
+        mock_imap.fetch.return_value = ("OK", [(b"1 (RFC822)", raw_bytes)])
+
+        stats = sync_briefing_from_gmail()
+        self.assertEqual(stats["created"], 1)
+        self.assertEqual(DailyBriefing.objects.count(), 1)
+        mock_imap.store.assert_called_once_with(b"1", "+FLAGS", "\\Deleted")
+
+        list_resp = self.client.get(reverse("blog:briefing_list"))
+        self.assertEqual(list_resp.status_code, 200)
+        self.assertContains(list_resp, "Daily Intelligence Briefing")
+        self.assertContains(list_resp, "Generated with ❤️ from Seattle, WA")
+
+        latest_resp = self.client.get(reverse("blog:briefing_latest"))
+        self.assertEqual(latest_resp.status_code, 200)
+        self.assertIn("Content-Security-Policy", latest_resp.headers)
+        self.assertContains(latest_resp, "Generated with ❤️ from Seattle, WA")
+
+        rss_resp = self.client.get(reverse("blog:briefing_rss"))
+        self.assertEqual(rss_resp.status_code, 200)
+        self.assertIn("application/rss+xml", rss_resp["Content-Type"])

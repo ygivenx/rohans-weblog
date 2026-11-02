@@ -11,10 +11,15 @@ def all_tags(request):
         ),
         til_count=Count("tils", distinct=True),
         feed_count=Count("feed_items", distinct=True),
+        briefing_count=Count(
+            "briefings", filter=Q(briefings__is_published=True), distinct=True
+        ),
     ).order_by("name")
 
     for tag in tags:
-        tag.total_count = tag.post_count + tag.til_count + tag.feed_count
+        tag.total_count = (
+            tag.post_count + tag.til_count + tag.feed_count + tag.briefing_count
+        )
 
     return {
         "all_tags": [t for t in tags if t.total_count > 0],

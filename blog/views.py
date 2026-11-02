@@ -5,14 +5,21 @@ import json
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import default_storage
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404
+from django.http import (
+    HttpResponse,
+    JsonResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+)
+from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
+from django.utils.feedgenerator import Rss201rev2Feed
 from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import BlogPost, TIL, Bookmark, FeedItem, Tag, ProductUpdate
+from .briefings import maybe_auto_sync_briefing
+from .models import BlogPost, TIL, Bookmark, FeedItem, Tag, ProductUpdate, DailyBriefing
 from .product_updates import (
     verify_github_signature,
     upsert_github_release,
@@ -130,12 +137,16 @@ def search(request):
 
         for item in results["feed_items"]:
             item.body_html = render_markdown(item.body)
+
+        for briefing in results.get("briefings", []):
+            briefing.summary_html = render_markdown(briefing.executive_summary_md)
     else:
         results = {
             "posts": BlogPost.objects.none(),
             "tils": TIL.objects.none(),
             "bookmarks": Bookmark.objects.none(),
             "feed_items": FeedItem.objects.none(),
+            "briefings": DailyBriefing.objects.none(),
         }
 
     return render(
@@ -214,6 +225,14 @@ def tag_detail(request, slug):
     for item in feed_items:
         item.body_html = render_markdown(item.body)
 
+    briefings = (
+        DailyBriefing.objects.filter(is_published=True, tags=tag)
+        .prefetch_related("tags")
+        .order_by("-briefing_date", "-created_date")
+    )
+    for briefing in briefings:
+        briefing.summary_html = render_markdown(briefing.executive_summary_md)
+
     return render(
         request,
         "blog/tag_detail.html",
@@ -222,6 +241,7 @@ def tag_detail(request, slug):
             "posts": posts,
             "tils": tils,
             "feed_items": feed_items,
+            "briefings": briefings,
         },
     )
 
@@ -247,6 +267,93 @@ def products_list(request):
             "gumroad_updates": gumroad_updates,
             "updates": updates,
         },
+    )
+
+
+def briefing_list(request):
+    """Display the Daily Intelligence Briefings hub and archive."""
+    maybe_auto_sync_briefing()
+    briefings = list(
+        DailyBriefing.objects.filter(is_published=True)
+        .prefetch_related("tags")
+        .order_by("-briefing_date", "-created_date")
+    )
+    for briefing in briefings:
+        briefing.summary_html = render_markdown(briefing.executive_summary_md)
+
+    latest_briefing = briefings[0] if briefings else None
+    archive_briefings = briefings[1:] if len(briefings) > 1 else []
+
+    return render(
+        request,
+        "blog/briefing_list.html",
+        {
+            "latest_briefing": latest_briefing,
+            "archive_briefings": archive_briefings,
+            "briefings": briefings,
+        },
+    )
+
+
+def _render_briefing_response(briefing):
+    """Render sanitized full-page interactive briefing HTML with strict CSP."""
+    response = HttpResponse(
+        briefing.sanitized_html, content_type="text/html; charset=utf-8"
+    )
+    response["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'unsafe-inline'; "
+        "style-src 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com data:; "
+        "img-src 'self' data: https:; "
+        "connect-src 'none'; "
+        "frame-ancestors 'self';"
+    )
+    return response
+
+
+def briefing_latest(request):
+    """Always-on permanent route (/briefing/) rendering the latest published briefing."""
+    maybe_auto_sync_briefing()
+    briefing = (
+        DailyBriefing.objects.filter(is_published=True)
+        .order_by("-briefing_date", "-created_date")
+        .first()
+    )
+    if not briefing:
+        return redirect("blog:briefing_list")
+    return _render_briefing_response(briefing)
+
+
+def briefing_detail(request, slug):
+    """Render a specific Daily Intelligence Briefing by date slug."""
+    briefing = get_object_or_404(DailyBriefing, slug=slug, is_published=True)
+    return _render_briefing_response(briefing)
+
+
+def briefing_rss(request):
+    """RSS 2.0 feed of published Daily Intelligence Briefings."""
+    feed = Rss201rev2Feed(
+        title="Rohan Singh's Daily Intelligence Briefing",
+        link=request.build_absolute_uri("/briefings/"),
+        description="Autonomous daily synthesis of frontier AI, markets, systems, and global intelligence — Generated with ❤️ from Seattle, WA.",
+        language="en-us",
+    )
+    briefings = DailyBriefing.objects.filter(is_published=True).order_by(
+        "-briefing_date", "-created_date"
+    )[:20]
+    for b in briefings:
+        item_url = request.build_absolute_uri(b.get_absolute_url())
+        summary_html = render_markdown(b.executive_summary_md)
+        feed.add_item(
+            title=b.title,
+            link=item_url,
+            description=summary_html,
+            unique_id=item_url,
+            pubdate=b.created_date,
+        )
+    return HttpResponse(
+        feed.writeString("utf-8"), content_type="application/rss+xml; charset=utf-8"
     )
 
 

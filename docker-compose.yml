@@ -19,6 +19,8 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
+             python manage.py import_briefing blog/seed_briefings || true &&
+             (while :; do python manage.py sync_briefing_email || true; sleep 15m; done) &
              gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 60 rohans_weblog.wsgi:application"
     volumes:
       - static_volume:/app/staticfiles
@@ -36,6 +38,9 @@ services:
       GITHUB_OWNER: ${GITHUB_OWNER}
       GUMROAD_ACCESS_TOKEN: ${GUMROAD_ACCESS_TOKEN}
       GUMROAD_WEBHOOK_TOKEN: ${GUMROAD_WEBHOOK_TOKEN}
+      GMAIL_USER: ${GMAIL_USER:-}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+      BRIEFINGS_FEED_MIRROR: ${BRIEFINGS_FEED_MIRROR:-true}
     depends_on:
       db:
         condition: service_healthy

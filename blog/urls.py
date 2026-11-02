@@ -5,6 +5,10 @@ app_name = "blog"
 
 urlpatterns = [
     path("", views.feed_list, name="index"),
+    path("briefing/", views.briefing_latest, name="briefing_latest"),
+    path("briefings/", views.briefing_list, name="briefing_list"),
+    path("briefings/rss/", views.briefing_rss, name="briefing_rss"),
+    path("briefings/<slug:slug>/", views.briefing_detail, name="briefing_detail"),
     path("products/", views.products_list, name="products_list"),
     path("posts/", views.post_list, name="post_list"),
     path("posts/<slug:slug>/", views.post_detail, name="post_detail"),

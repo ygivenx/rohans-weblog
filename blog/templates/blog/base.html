@@ -609,6 +609,7 @@
             <div class="site-description">Writing about software, data science, and things I learn along the way.</div>
             <nav>
                 <a href="{% url 'blog:index' %}">Feed</a>
+                <a href="{% url 'blog:briefing_list' %}">Briefings</a>
                 <a href="{% url 'blog:products_list' %}">Products</a>
                 <a href="{% url 'blog:post_list' %}">Writing</a>
                 <a href="{% url 'blog:til_list' %}">TIL</a>
@@ -628,7 +629,7 @@
         </main>
 
         <footer>
-            <p>&copy; {% now "Y" %} Rohan Singh &middot; <a href="{% url 'blog:search' %}">Search</a></p>
+            <p>&copy; {% now "Y" %} Rohan Singh &middot; Generated with ❤️ from Seattle, WA &middot; <a href="{% url 'blog:briefing_latest' %}">Today's Briefing</a> &middot; <a href="{% url 'blog:search' %}">Search</a></p>
         </footer>
     </div>
     <script>

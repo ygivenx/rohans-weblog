@@ -52,6 +52,9 @@ jobs:
       GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
       GUMROAD_WEBHOOK_TOKEN: ${{ secrets.GUMROAD_WEBHOOK_TOKEN }}
       PRODUCTS_FEED_MIRROR: ${{ vars.PRODUCTS_FEED_MIRROR }}
+      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      BRIEFINGS_FEED_MIRROR: ${{ vars.BRIEFINGS_FEED_MIRROR }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       VPS_HOST: ${{ vars.VPS_HOST }}
@@ -119,6 +122,9 @@ jobs:
             GUMROAD_ACCESS_TOKEN=${{ env.GUMROAD_ACCESS_TOKEN }}
             GUMROAD_WEBHOOK_TOKEN=${{ env.GUMROAD_WEBHOOK_TOKEN }}
             PRODUCTS_FEED_MIRROR=${{ env.PRODUCTS_FEED_MIRROR }}
+            GMAIL_USER=${{ env.GMAIL_USER }}
+            GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}
+            BRIEFINGS_FEED_MIRROR=${{ env.BRIEFINGS_FEED_MIRROR }}
             ENVEOF
 
             # Build and deploy
