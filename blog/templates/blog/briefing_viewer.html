@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ briefing.title }} — Rohan Singh's Weblog</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: #111111;
+            font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .viewer-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+        .weblog-top-ribbon {
+            background: #111111;
+            color: #F8F9FA;
+            font-size: 0.74rem;
+            padding: 0.45rem 1.25rem;
+            border-bottom: 1px solid #2A2E39;
+            flex-shrink: 0;
+        }
+        .weblog-top-ribbon-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.65rem;
+        }
+        .weblog-top-ribbon a {
+            color: #E5E7EB;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+        .weblog-top-ribbon a:hover {
+            color: #93C5FD;
+            text-decoration: underline;
+        }
+        .weblog-ribbon-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.9rem;
+            align-items: center;
+        }
+        .weblog-ribbon-badge {
+            background: #1A5FB4;
+            color: #FFFFFF !important;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        .edition-select {
+            background: #1F2430;
+            color: #F8F9FA;
+            border: 1px solid #3B4458;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+        .disclaimer-strip {
+            background: #181B22;
+            color: #9CA3AF;
+            font-size: 0.68rem;
+            text-align: center;
+            padding: 0.22rem 1rem;
+            border-bottom: 1px solid #262B36;
+            flex-shrink: 0;
+        }
+        .briefing-frame {
+            flex: 1;
+            width: 100%;
+            border: none;
+            background: #FCFBF9;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewer-shell">
+        <div class="weblog-top-ribbon" role="navigation" aria-label="Rohan's Weblog Navigation">
+            <div class="weblog-top-ribbon-inner">
+                <div>
+                    <a href="{% url 'blog:index' %}"><strong>&larr; Rohan Singh's Weblog</strong></a>
+                    <span style="color:#737373; margin: 0 0.35rem;">&bull;</span>
+                    <span style="color:#9CA3AF;">Generated with ❤️ from Seattle, WA</span>
+                </div>
+                <div class="weblog-ribbon-links">
+                    {% if all_editions %}
+                    <label style="color:#9CA3AF; display:inline-flex; align-items:center; gap:0.35rem;">
+                        <span>📅 Edition:</span>
+                        <select class="edition-select" onchange="if(this.value) window.location.href=this.value" aria-label="Select Briefing Edition">
+                            {% for ed in all_editions %}
+                            <option value="{% url 'blog:briefing_detail' ed.slug %}" {% if ed.slug == briefing.slug %}selected{% endif %}>
+                                {{ ed.briefing_date|date:"M d, Y" }}{% if ed.signal_count %} ({{ ed.signal_count }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    {% endif %}
+                    <a href="{% url 'blog:briefing_latest' %}" class="weblog-ribbon-badge">⚡ Today's Briefing</a>
+                    <a href="{% url 'blog:briefing_archive' %}">All Editions</a>
+                    <a href="{% url 'blog:briefing_rss' %}">RSS</a>
+                    <a href="{% url 'blog:products_list' %}">Products</a>
+                    <a href="{% url 'blog:post_list' %}">Writing</a>
+                    <a href="{% url 'blog:til_list' %}">TIL</a>
+                    <a href="{% url 'blog:about' %}">About Rohan</a>
+                </div>
+            </div>
+        </div>
+        <div class="disclaimer-strip">
+            AI-synthesized from curated dispatches for informational purposes only; not financial, investment, or medical advice.
+        </div>
+        <iframe
+            class="briefing-frame"
+            title="{{ briefing.title }}"
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+            referrerpolicy="no-referrer"
+            srcdoc="{{ briefing.sanitized_html }}"
+        ></iframe>
+    </div>
+</body>
+</html>

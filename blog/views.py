@@ -11,14 +11,13 @@ from django.http import (
     HttpResponseBadRequest,
     HttpResponseForbidden,
 )
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 from django.utils.feedgenerator import Rss201rev2Feed
 from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .briefings import maybe_auto_sync_briefing
 from .models import BlogPost, TIL, Bookmark, FeedItem, Tag, ProductUpdate, DailyBriefing
 from .product_updates import (
     verify_github_signature,
@@ -270,9 +269,8 @@ def products_list(request):
     )
 
 
-def briefing_list(request):
-    """Display the Daily Intelligence Briefings hub and archive."""
-    maybe_auto_sync_briefing()
+def briefing_archive(request):
+    """Display the Daily Intelligence Briefings archive list view."""
     briefings = list(
         DailyBriefing.objects.filter(is_published=True)
         .prefetch_related("tags")
@@ -295,40 +293,47 @@ def briefing_list(request):
     )
 
 
-def _render_briefing_response(briefing):
-    """Render sanitized full-page interactive briefing HTML with strict CSP."""
-    response = HttpResponse(
-        briefing.sanitized_html, content_type="text/html; charset=utf-8"
+def _render_briefing_response(request, briefing):
+    """
+    Render the Daily Intelligence Briefing inside an isolated sandboxed iframe
+    (opaque origin, zero cookie/admin access) wrapped with the site navigation ribbon.
+    """
+    all_editions = list(
+        DailyBriefing.objects.filter(is_published=True)
+        .only("slug", "briefing_date", "signal_count")
+        .order_by("-briefing_date", "-created_date")[:60]
     )
-    response["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'unsafe-inline'; "
-        "style-src 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src https://fonts.gstatic.com data:; "
-        "img-src 'self' data: https:; "
-        "connect-src 'none'; "
-        "frame-ancestors 'self';"
+    return render(
+        request,
+        "blog/briefing_viewer.html",
+        {
+            "briefing": briefing,
+            "all_editions": all_editions,
+        },
     )
-    return response
+
+
+def briefing_list(request):
+    """Render the latest full interactive briefing directly at /briefings/."""
+    return briefing_latest(request)
 
 
 def briefing_latest(request):
-    """Always-on permanent route (/briefing/) rendering the latest published briefing."""
-    maybe_auto_sync_briefing()
+    """Always-on permanent route (/briefing/ and /briefings/) rendering the latest published briefing."""
     briefing = (
         DailyBriefing.objects.filter(is_published=True)
         .order_by("-briefing_date", "-created_date")
         .first()
     )
     if not briefing:
-        return redirect("blog:briefing_list")
-    return _render_briefing_response(briefing)
+        return briefing_archive(request)
+    return _render_briefing_response(request, briefing)
 
 
 def briefing_detail(request, slug):
     """Render a specific Daily Intelligence Briefing by date slug."""
     briefing = get_object_or_404(DailyBriefing, slug=slug, is_published=True)
-    return _render_briefing_response(briefing)
+    return _render_briefing_response(request, briefing)
 
 
 def briefing_rss(request):

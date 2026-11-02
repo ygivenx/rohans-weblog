@@ -7,6 +7,7 @@ urlpatterns = [
     path("", views.feed_list, name="index"),
     path("briefing/", views.briefing_latest, name="briefing_latest"),
     path("briefings/", views.briefing_list, name="briefing_list"),
+    path("briefings/archive/", views.briefing_archive, name="briefing_archive"),
     path("briefings/rss/", views.briefing_rss, name="briefing_rss"),
     path("briefings/<slug:slug>/", views.briefing_detail, name="briefing_detail"),
     path("products/", views.products_list, name="products_list"),

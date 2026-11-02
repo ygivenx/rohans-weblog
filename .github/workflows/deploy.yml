@@ -52,7 +52,7 @@ jobs:
       GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
       GUMROAD_WEBHOOK_TOKEN: ${{ secrets.GUMROAD_WEBHOOK_TOKEN }}
       PRODUCTS_FEED_MIRROR: ${{ vars.PRODUCTS_FEED_MIRROR }}
-      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_USER: ${{ secrets.GMAIL_USER || vars.SSL_EMAIL }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       BRIEFINGS_FEED_MIRROR: ${{ vars.BRIEFINGS_FEED_MIRROR }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}

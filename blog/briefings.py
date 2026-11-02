@@ -1,21 +1,19 @@
 import email
+import email.utils
 import html
 import imaplib
 import logging
 import re
-import time
 from datetime import date, datetime
+from urllib.parse import unquote
 
 from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
-from django.utils import timezone
 
 from .models import DailyBriefing, FeedItem, Tag
 
 logger = logging.getLogger(__name__)
-_LAST_GMAIL_SYNC_CHECK = 0.0
-GMAIL_SYNC_COOLDOWN_SECONDS = 300
 
 
 MONTH_DATE_RE = re.compile(
@@ -67,6 +65,14 @@ def parse_briefing_date(raw_html, filename="", fallback_date=None):
     if masthead_match:
         search_targets.append(_strip_tags(masthead_match.group(1)))
 
+    kicker_match = re.search(
+        r'<div class="kicker">(.*?)</div>',
+        raw_html or "",
+        re.IGNORECASE | re.DOTALL,
+    )
+    if kicker_match:
+        search_targets.append(_strip_tags(kicker_match.group(1)))
+
     if filename:
         search_targets.append(filename.replace("_", " ").replace("-", " "))
 
@@ -114,22 +120,32 @@ def extract_briefing_metadata(raw_html, briefing_date=None, filename=""):
     )
     if masthead_spans:
         edition_meta = _strip_tags(masthead_spans[0][1])
+    else:
+        vol_match = re.search(
+            r"(Vol\.[A-Za-z0-9\s•·.\-]+No\.\s*\d+)",
+            raw_html or "",
+            re.IGNORECASE,
+        )
+        if vol_match:
+            edition_meta = _strip_tags(vol_match.group(1))
 
-    # Extract signal count
+    # Extract signal count (supports both static <article class="briefing-card"> and JS-rendered ITEMS)
     card_ids = re.findall(
-        r'<article[^>]+class="[^"]*briefing-card[^"]*"[^>]+id="card-(\d+)"',
+        r'<article[^>]+class="[^"]*briefing-card[^"]*"',
         raw_html or "",
         re.IGNORECASE,
     )
     signal_count = len(card_ids)
     if not signal_count:
-        badge_match = re.search(
+        for pattern in (
             r'<div class="badge-processed">\s*<strong>(\d+)</strong>',
-            raw_html or "",
-            re.IGNORECASE | re.DOTALL,
-        )
-        if badge_match:
-            signal_count = int(badge_match.group(1))
+            r"(\d+)\s+Synthesized Briefings",
+            r">All\s*\((\d+)\)<",
+        ):
+            m_count = re.search(pattern, raw_html or "", re.IGNORECASE | re.DOTALL)
+            if m_count:
+                signal_count = int(m_count.group(1))
+                break
 
     # Extract 3-bullet executive summary
     signal_items = re.findall(
@@ -142,7 +158,10 @@ def extract_briefing_metadata(raw_html, briefing_date=None, filename=""):
         label = _strip_tags(label_raw)
         text = _strip_tags(text_raw)
         if label and text:
-            summary_lines.append(f"- **{label}** — {text}")
+            # Escape currency/ticker $ signs so MathJax does not treat "$40B ... $25B" as LaTeX math
+            safe_label = re.sub(r"\$(?=[0-9A-Za-z])", r"\\$", label)
+            safe_text = re.sub(r"\$(?=[0-9A-Za-z])", r"\\$", text)
+            summary_lines.append(f"- **{safe_label}** — {safe_text}")
     executive_summary_md = "\n\n".join(summary_lines)
 
     # Extract metric cards
@@ -209,14 +228,52 @@ def _clean_ledger_row(match):
     return row_html
 
 
+def _unwrap_gmail_redirect(match):
+    """
+    Unwrap Gmail redirect links (https://www.google.com/url?q=...) injected when Gmail
+    saves a draft. Also restores bare JS identifiers like card.id or DAIR.AI that Gmail
+    mistakenly prefixed with http://.
+    """
+    raw_q = html.unescape(match.group(1))
+    decoded = unquote(raw_q)
+    # If Gmail turned a bare token like card.id or DAIR.AI into http://card.id (no slash after host)
+    bare_match = re.match(r"^http://([A-Za-z0-9_-]+\.[A-Za-z]{2,4})$", decoded)
+    if bare_match and not decoded.lower().startswith("http://www."):
+        return bare_match.group(1)
+    return decoded
+
+
 def sanitize_briefing_html(raw_html):
     """
     Sanitize a Daily Intelligence Briefing HTML artifact for public publishing:
-    - Strip all private Gmail links (mail.google.com) and email addresses
+    - Unwrap Gmail redirect URLs (https://www.google.com/url?q=...) and restore JS identifiers like card.id
+    - Strip all private Gmail links (mail.google.com), Readwise private review links, and email addresses
     - Replace location with 'Generated with ❤️ from Seattle, WA'
     - Inject Rohan Singh's Weblog top navigation bar, branding, and 1-click Share buttons
     """
     cleaned = raw_html or ""
+
+    # 0. Unwrap Gmail redirect URLs (https://www.google.com/url?q=...)
+    cleaned = re.sub(
+        r'https?://(?:www\.)?google\.com/url\?q=([^&"\'\s<>]+)(?:&amp;|&)?[^\s"\'<>]*',
+        _unwrap_gmail_redirect,
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    # Strip private account/investor/review URLs (Readwise, InvPortal, Fundrise, etc.)
+    for private_pattern in (
+        r'https?://(?:www\.)?readwise\.io/review/[^\s"\'<>]*',
+        r'https?://[^\s"\'<>]*invportal\.com[^\s"\'<>]*',
+        r'https?://(?:www\.)?fundrise\.com/property-update/[^\s"\'<>]*',
+        r'https?://[^\s"\'<>]*[?&](?:authuser|token|unsubscribe|session_id)=[^\s"\'<>]*',
+    ):
+        cleaned = re.sub(private_pattern, "#", cleaned, flags=re.IGNORECASE)
+
+    # In JS-rendered card templates, avoid rendering dead href="#" links
+    cleaned = cleaned.replace(
+        '<a href="${it[5]}" target="_blank" rel="noopener noreferrer">Open Primary Source ↗</a>',
+        '${it[5] && it[5] !== "#" ? `<a href="${it[5]}" target="_blank" rel="noopener noreferrer">Open Primary Source ↗</a>` : `<span style="color:var(--muted)">Curated Dispatch</span>`}',
+    )
 
     # 1. Strip email addresses in title="..." attributes (e.g. .card-source-badge)
     cleaned = EMAIL_ATTR_RE.sub("", cleaned)
@@ -340,69 +397,17 @@ def sanitize_briefing_html(raw_html):
         flags=re.IGNORECASE,
     )
 
-    # 8. Inject top site navigation bar + Share button handler
-    top_ribbon_css = """
-/* Rohan's Weblog Integration Ribbon */
-.weblog-top-ribbon {
-    background: #111111;
-    color: #F8F9FA;
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
-    padding: 0.5rem 1.5rem;
-    border-bottom: 1px solid #2A2E39;
-}
-.weblog-top-ribbon-inner {
-    max-width: 1240px;
-    margin: 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
-}
-.weblog-top-ribbon a {
-    color: #E5E7EB;
-    text-decoration: none;
-    transition: color 0.15s ease;
-}
-.weblog-top-ribbon a:hover {
-    color: #93C5FD;
-    text-decoration: underline;
-}
-.weblog-ribbon-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: center;
-}
-.weblog-ribbon-badge {
-    background: #1A5FB4;
-    color: #FFFFFF !important;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-weight: 600;
-}
-"""
-    if ".weblog-top-ribbon" not in cleaned and "</style>" in cleaned:
-        cleaned = cleaned.replace("</style>", top_ribbon_css + "\n</style>", 1)
-
-    top_ribbon_html = """<div class="weblog-top-ribbon" role="navigation" aria-label="Rohan's Weblog Navigation">
-<div class="weblog-top-ribbon-inner">
-<div><a href="/"><strong>← Rohan Singh's Weblog</strong></a> <span style="color:#737373; margin: 0 0.35rem;">•</span> <span style="color:#9CA3AF;">Generated with ❤️ from Seattle, WA</span></div>
-<div class="weblog-ribbon-links">
-<a href="/briefing/" class="weblog-ribbon-badge">⚡ Today's Briefing</a>
-<a href="/briefings/">Archive</a>
-<a href="/briefings/rss/">RSS</a>
-<a href="/products/">Products</a>
-<a href="/posts/">Writing</a>
-<a href="/til/">TIL</a>
-<a href="/about/">About Rohan</a>
-</div>
-</div>
-</div>
-"""
-    if 'class="weblog-top-ribbon"' not in cleaned and "<body>" in cleaned:
-        cleaned = cleaned.replace("<body>", "<body>\n" + top_ribbon_html, 1)
+    # 8. Strip any legacy inline top-ribbon (rendered outside the sandboxed iframe in briefing_viewer.html)
+    cleaned = re.sub(
+        r"/\* Rohan's Weblog Integration Ribbon \*/[\s\S]*?\.weblog-ribbon-badge\s*\{[^}]*\}\s*",
+        "",
+        cleaned,
+    )
+    cleaned = re.sub(
+        r'<div class="weblog-top-ribbon"[\s\S]*?</div>\s*</div>\s*</div>\s*',
+        "",
+        cleaned,
+    )
 
     share_script = """
 <script>
@@ -415,7 +420,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!card) return;
             var headline = (card.querySelector('.card-headline') || {}).textContent || '';
             var why = (card.querySelector('.why-matters-text') || {}).textContent || '';
-            var shareUrl = window.location.origin + window.location.pathname + '#' + cardId;
+            var baseUrl = (window.parent && window.parent.location) ? (window.parent.location.origin + window.parent.location.pathname) : '';
+            var shareUrl = (baseUrl || 'https://rohansweblog.com/briefings/') + '#' + cardId;
             var payload = headline.trim() + (why ? '\\n\\nWhy It Matters: ' + why.trim() : '') + '\\n\\n' + shareUrl;
             var self = this;
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -589,10 +595,11 @@ def _extract_html_from_email_message(msg):
 def sync_briefing_from_gmail():
     """
     Connect to Gmail via IMAP using GMAIL_USER and GMAIL_APP_PASSWORD,
-    search [Gmail]/Drafts and INBOX for BRIEFING_EMAIL_SUBJECT,
-    ingest any matching HTML briefing, and delete the processed draft/email.
+    search ONLY [Gmail]/Drafts for BRIEFING_EMAIL_SUBJECT (never INBOX, preventing
+    external sender spoofing), verify sender matches GMAIL_USER if present,
+    ingest any matching HTML briefing, and delete the processed draft.
     """
-    gmail_user = getattr(settings, "GMAIL_USER", "").strip() or "rohanmyself@gmail.com"
+    gmail_user = getattr(settings, "GMAIL_USER", "").strip()
     gmail_password = (
         getattr(settings, "GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
     )
@@ -609,46 +616,47 @@ def sync_briefing_from_gmail():
     imap = imaplib.IMAP4_SSL("imap.gmail.com", 993)
     try:
         imap.login(gmail_user, gmail_password)
-        folders = ['"[Gmail]/Drafts"', "INBOX"]
-
-        for folder in folders:
-            status, _ = imap.select(folder)
-            if status != "OK":
-                continue
-
+        status, _ = imap.select('"[Gmail]/Drafts"')
+        if status == "OK":
             status, data = imap.search(None, f'(SUBJECT "{subject_filter}")')
-            if status != "OK" or not data or not data[0]:
-                continue
+            if status == "OK" and data and data[0]:
+                msg_ids = data[0].split()
+                for msg_id in msg_ids:
+                    fetch_status, msg_data = imap.fetch(msg_id, "(RFC822)")
+                    if fetch_status != "OK" or not msg_data:
+                        continue
 
-            msg_ids = data[0].split()
-            for msg_id in msg_ids:
-                fetch_status, msg_data = imap.fetch(msg_id, "(RFC822)")
-                if fetch_status != "OK" or not msg_data:
-                    continue
+                    raw_bytes = None
+                    for item in msg_data:
+                        if isinstance(item, tuple) and len(item) >= 2:
+                            raw_bytes = item[1]
+                            break
+                    if not raw_bytes:
+                        continue
 
-                raw_bytes = None
-                for item in msg_data:
-                    if isinstance(item, tuple) and len(item) >= 2:
-                        raw_bytes = item[1]
-                        break
-                if not raw_bytes:
-                    continue
+                    msg = email.message_from_bytes(raw_bytes)
+                    sender_addr = email.utils.parseaddr(msg.get("From", ""))[1].lower()
+                    if sender_addr and sender_addr != gmail_user.lower():
+                        logger.warning(
+                            "Skipping draft with mismatched From address: %s",
+                            sender_addr,
+                        )
+                        continue
 
-                msg = email.message_from_bytes(raw_bytes)
-                extracted_html = _extract_html_from_email_message(msg)
-                if not extracted_html:
-                    continue
+                    extracted_html = _extract_html_from_email_message(msg)
+                    if not extracted_html:
+                        continue
 
-                _, created = ingest_briefing_html(extracted_html)
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
+                    _, created = ingest_briefing_html(extracted_html)
+                    if created:
+                        created_count += 1
+                    else:
+                        updated_count += 1
 
-                # Delete processed draft/email so it is not re-processed
-                imap.store(msg_id, "+FLAGS", "\\Deleted")
+                    # Delete processed draft so it is not re-processed
+                    imap.store(msg_id, "+FLAGS", "\\Deleted")
 
-            imap.expunge()
+                imap.expunge()
     finally:
         try:
             imap.logout()
@@ -656,32 +664,3 @@ def sync_briefing_from_gmail():
             pass
 
     return {"created": created_count, "updated": updated_count, "checked": True}
-
-
-def maybe_auto_sync_briefing():
-    """
-    Lightweight helper called on /briefing/ and /briefings/:
-    If today's briefing is not yet in the database and cooldown has elapsed,
-    automatically poll Gmail IMAP so visiting /briefing/ always fetches today's edition.
-    """
-    global _LAST_GMAIL_SYNC_CHECK
-    gmail_user = getattr(settings, "GMAIL_USER", "").strip() or "rohanmyself@gmail.com"
-    gmail_password = (
-        getattr(settings, "GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
-    )
-    if not gmail_user or not gmail_password:
-        return
-
-    today = timezone.localdate()
-    if DailyBriefing.objects.filter(briefing_date=today, is_published=True).exists():
-        return
-
-    now = time.monotonic()
-    if now - _LAST_GMAIL_SYNC_CHECK < GMAIL_SYNC_COOLDOWN_SECONDS:
-        return
-
-    _LAST_GMAIL_SYNC_CHECK = now
-    try:
-        sync_briefing_from_gmail()
-    except Exception as exc:
-        logger.warning("Auto-sync briefing from Gmail failed: %s", exc)

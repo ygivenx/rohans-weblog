@@ -198,10 +198,11 @@ SAMPLE_BRIEFING_HTML = """<!DOCTYPE html>
 <div class="why-matters-box"><span class="why-matters-text">Unit economics matter.</span></div>
 </div>
 <div class="card-footer">
-<a href="https://x.com/claudeai/status/1" class="card-link">Read →</a>
+<a href="https://www.google.com/url?q=https://readwise.io/review/rohan9/123&amp;source=gmail" class="card-link">Read →</a>
 <a href="https://mail.google.com/mail/?authuser=rohanmyself@gmail.com#all/thread-f:123" class="card-gmail-link">✉️ Email ↗</a>
 </div>
 </article>
+<script>https://www.google.com/url?q=http://card.id&source=gmail = "card-1";</script>
 <table>
 <tbody>
 <tr>
@@ -235,6 +236,9 @@ class DailyBriefingTests(TestCase):
         self.assertEqual(briefing.signal_count, 1)
         self.assertNotIn("rohanmyself", briefing.sanitized_html)
         self.assertNotIn("mail.google.com", briefing.sanitized_html)
+        self.assertNotIn("google.com/url", briefing.sanitized_html)
+        self.assertNotIn("readwise.io/review", briefing.sanitized_html)
+        self.assertIn('card.id = "card-1";', briefing.sanitized_html)
         self.assertNotIn("lspace@mail.beehiiv.com", briefing.sanitized_html)
         self.assertNotIn("Sammamish", briefing.sanitized_html)
         self.assertIn("Generated with ❤️ from Seattle, WA", briefing.sanitized_html)
@@ -252,23 +256,32 @@ class DailyBriefingTests(TestCase):
 
         mock_imap = MagicMock()
         mock_imap_cls.return_value = mock_imap
-        mock_imap.select.side_effect = [("OK", [b"1"]), ("OK", [b"0"])]
-        mock_imap.search.side_effect = [("OK", [b"1"]), ("OK", [b""])]
+        mock_imap.select.return_value = ("OK", [b"1"])
+        mock_imap.search.return_value = ("OK", [b"1"])
         mock_imap.fetch.return_value = ("OK", [(b"1 (RFC822)", raw_bytes)])
 
         stats = sync_briefing_from_gmail()
         self.assertEqual(stats["created"], 1)
         self.assertEqual(DailyBriefing.objects.count(), 1)
+        mock_imap.select.assert_called_once_with('"[Gmail]/Drafts"')
         mock_imap.store.assert_called_once_with(b"1", "+FLAGS", "\\Deleted")
 
         list_resp = self.client.get(reverse("blog:briefing_list"))
         self.assertEqual(list_resp.status_code, 200)
         self.assertContains(list_resp, "Daily Intelligence Briefing")
         self.assertContains(list_resp, "Generated with ❤️ from Seattle, WA")
+        self.assertContains(
+            list_resp,
+            'sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"',
+        )
+        self.assertNotContains(list_resp, "allow-same-origin")
+
+        archive_resp = self.client.get(reverse("blog:briefing_archive"))
+        self.assertEqual(archive_resp.status_code, 200)
+        self.assertContains(archive_resp, "Daily Intelligence Briefing")
 
         latest_resp = self.client.get(reverse("blog:briefing_latest"))
         self.assertEqual(latest_resp.status_code, 200)
-        self.assertIn("Content-Security-Policy", latest_resp.headers)
         self.assertContains(latest_resp, "Generated with ❤️ from Seattle, WA")
 
         rss_resp = self.client.get(reverse("blog:briefing_rss"))
