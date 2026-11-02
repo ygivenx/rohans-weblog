@@ -8,7 +8,11 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from blog.briefings import ingest_briefing_html, sync_briefing_from_gmail
+from blog.briefings import (
+    ingest_briefing_html,
+    sanitize_briefing_html,
+    sync_briefing_from_gmail,
+)
 from blog.models import DailyBriefing, FeedItem, ProductUpdate
 from blog.product_updates import sync_gumroad_products
 
@@ -244,6 +248,15 @@ class DailyBriefingTests(TestCase):
         self.assertIn("Generated with ❤️ from Seattle, WA", briefing.sanitized_html)
         self.assertIn("card-share-btn", briefing.sanitized_html)
         self.assertIsNotNone(briefing.mirrored_feed_item)
+
+    def test_sanitizer_keeps_code_after_gmail_redirect(self):
+        raw = (
+            "<script>const el = document.getElementById("
+            "http://www.google.com/url?q=http://c.id&amp;sa=D&amp;source=editors&amp;usg=AOvVaw1-x_y);\n"
+            "if (el) {}</script>"
+        )
+        out = sanitize_briefing_html(raw)
+        self.assertIn("getElementById(c.id);", out)
 
     @patch("blog.briefings.imaplib.IMAP4_SSL")
     def test_sync_briefing_from_gmail_and_routes(self, mock_imap_cls):

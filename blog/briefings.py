@@ -255,7 +255,8 @@ def sanitize_briefing_html(raw_html):
 
     # 0. Unwrap Gmail redirect URLs (https://www.google.com/url?q=...)
     cleaned = re.sub(
-        r'https?://(?:www\.)?google\.com/url\?q=([^&"\'\s<>]+)(?:&amp;|&)?[^\s"\'<>]*',
+        r'https?://(?:www\.)?google\.com/url\?q=([^&"\'\s<>]+)'
+        r"(?:(?:&amp;|&)(?:sa|source|ust|usg|ved)=[A-Za-z0-9_.\-]*)*",
         _unwrap_gmail_redirect,
         cleaned,
         flags=re.IGNORECASE,
