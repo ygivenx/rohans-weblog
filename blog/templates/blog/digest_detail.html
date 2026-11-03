@@ -1,0 +1,32 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ digest.title }}{% endblock %}
+
+{% block content %}
+<article>
+    <h1>{{ digest.title }}</h1>
+
+    <div class="post-date">
+        <a href="{{ digest.series.get_absolute_url }}">{{ digest.series.name }}</a>
+        &middot; {{ digest.digest_date|date:"jS F Y" }}
+    </div>
+
+    {% if digest.tags.all %}
+    <div class="tags">
+        {% for tag in digest.tags.all %}
+            <a href="{% url 'blog:tag_detail' tag.slug %}" class="tag">{{ tag.name }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="content">
+        {{ content_html|safe }}
+    </div>
+
+    {% if digest.source_url %}
+    <p><a href="{{ digest.source_url }}" rel="noopener noreferrer">Original source &nearr;</a></p>
+    {% endif %}
+</article>
+
+<p style="margin-top: 30px;"><a href="{{ digest.series.get_absolute_url }}">&larr; Back to {{ digest.series.name }}</a></p>
+{% endblock %}

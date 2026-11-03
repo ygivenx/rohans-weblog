@@ -1,0 +1,31 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ series.name }}{% endblock %}
+
+{% block content %}
+<h2>{{ series.name }}</h2>
+{% if series.description %}<p>{{ series.description }}</p>{% endif %}
+
+{% if page_obj %}
+<ul class="post-list">
+    {% for digest in page_obj %}
+    <li class="post-item">
+        <div class="post-date">{{ digest.digest_date|date:"jS F Y" }}</div>
+        <h3 class="post-title"><a href="{{ digest.get_absolute_url }}">{{ digest.title }}</a></h3>
+    </li>
+    {% endfor %}
+</ul>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">previous</a>{% endif %}
+    <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">next</a>{% endif %}
+</div>
+{% endif %}
+{% else %}
+<p>Nothing published yet.</p>
+{% endif %}
+
+<p style="margin-top: 30px;"><a href="{% url 'blog:digest_index' %}">&larr; All digests</a></p>
+{% endblock %}

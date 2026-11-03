@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django import forms
 from martor.widgets import AdminMartorWidget
 from .briefings import (
@@ -6,7 +6,23 @@ from .briefings import (
     sanitize_briefing_html,
     mirror_briefing_to_feed,
 )
-from .models import BlogPost, TIL, Bookmark, Tag, FeedItem, ProductUpdate, DailyBriefing
+from .intake import (
+    create_agent_token,
+    publish_digest,
+    unpublish_digest,
+)
+from .models import (
+    AgentToken,
+    BlogPost,
+    TIL,
+    Bookmark,
+    Tag,
+    FeedItem,
+    ProductUpdate,
+    DailyBriefing,
+    Digest,
+    Series,
+)
 
 
 class BlogPostAdminForm(forms.ModelForm):
@@ -303,3 +319,96 @@ class DailyBriefingAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         mirror_briefing_to_feed(obj)
+
+
+@admin.register(Series)
+class SeriesAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "auto_publish", "is_active"]
+    prepopulated_fields = {"slug": ("name",)}
+
+
+@admin.register(AgentToken)
+class AgentTokenAdmin(admin.ModelAdmin):
+    """Create a token here; the key is displayed exactly once, then only a hash is kept."""
+
+    list_display = ["name", "prefix", "is_active", "last_used_at", "created_date"]
+    list_filter = ["is_active"]
+    fields = ["name", "is_active", "prefix", "last_used_at", "created_date"]
+    readonly_fields = ["prefix", "last_used_at", "created_date"]
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            super().save_model(request, obj, form, change)
+            return
+        token, key = create_agent_token(obj.name)
+        obj.pk, obj.prefix = token.pk, token.prefix
+        obj._state.adding = False
+        messages.warning(
+            request,
+            f"Key for {token.name} (copy it now, it will not be shown again): {key}",
+        )
+
+
+@admin.action(description="Publish selected digests")
+def publish_selected(modeladmin, request, queryset):
+    for digest in queryset:
+        publish_digest(digest)
+    modeladmin.message_user(request, f"Published {queryset.count()} digest(s).")
+
+
+@admin.action(description="Unpublish selected digests (back to draft)")
+def unpublish_selected(modeladmin, request, queryset):
+    for digest in queryset:
+        unpublish_digest(digest)
+    modeladmin.message_user(request, f"Moved {queryset.count()} digest(s) to draft.")
+
+
+@admin.register(Digest)
+class DigestAdmin(admin.ModelAdmin):
+    """Editorial desk: agent submissions land here as drafts."""
+
+    list_display = ["title", "series", "digest_date", "status", "source", "agent"]
+    list_filter = ["status", "series", "source", "agent"]
+    search_fields = ["title", "body_md", "external_id"]
+    filter_horizontal = ["tags"]
+    date_hierarchy = "digest_date"
+    actions = [publish_selected, unpublish_selected]
+    readonly_fields = [
+        "source",
+        "agent",
+        "published_at",
+        "mirrored_feed_item",
+        "created_date",
+        "updated_date",
+    ]
+    fields = [
+        "series",
+        "title",
+        "digest_date",
+        "external_id",
+        "slug",
+        "body_md",
+        "source_url",
+        "tags",
+        "status",
+        "source",
+        "agent",
+        "published_at",
+        "mirrored_feed_item",
+        "created_date",
+        "updated_date",
+    ]
+
+    def save_model(self, request, obj, form, change):
+        requested = form.cleaned_data["status"]
+        prior = Digest.objects.get(pk=obj.pk).status if change else None
+        if not change:
+            obj.source = "admin"
+        # Save as the prior status, then let the pipeline apply the transition
+        # so the Feed card is created/updated/removed consistently.
+        obj.status = prior or Digest.STATUS_DRAFT
+        super().save_model(request, obj, form, change)
+        if requested == Digest.STATUS_PUBLISHED:
+            publish_digest(obj)
+        elif prior == Digest.STATUS_PUBLISHED:
+            unpublish_digest(obj)

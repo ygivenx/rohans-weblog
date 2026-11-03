@@ -283,3 +283,121 @@ class DailyBriefing(models.Model):
 
     def get_absolute_url(self):
         return reverse("blog:briefing_detail", kwargs={"slug": self.slug})
+
+
+class Series(models.Model):
+    """A named stream of digests (e.g. weekly GitHub trending)."""
+
+    slug = models.SlugField(max_length=80, unique=True)
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    auto_publish = models.BooleanField(
+        default=False,
+        help_text="If off, submissions land as drafts and need approval in admin.",
+    )
+    is_active = models.BooleanField(default=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Series"
+        verbose_name_plural = "Series"
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse("blog:digest_series", kwargs={"series_slug": self.slug})
+
+
+class AgentToken(models.Model):
+    """Revocable bearer token for one agent. Only a SHA-256 hash is stored."""
+
+    name = models.CharField(max_length=100, unique=True)
+    prefix = models.CharField(max_length=12, editable=False)
+    key_hash = models.CharField(max_length=64, unique=True, editable=False)
+    is_active = models.BooleanField(default=True)
+    last_used_at = models.DateTimeField(null=True, blank=True, editable=False)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.prefix}…)"
+
+
+class Digest(models.Model):
+    """One edition of a Series, submitted by an agent, the admin, or Gmail."""
+
+    STATUS_DRAFT = "draft"
+    STATUS_PUBLISHED = "published"
+    STATUS_CHOICES = [(STATUS_DRAFT, "Draft"), (STATUS_PUBLISHED, "Published")]
+    SOURCE_CHOICES = [("api", "API"), ("gmail", "Gmail"), ("admin", "Admin")]
+
+    series = models.ForeignKey(Series, on_delete=models.CASCADE, related_name="digests")
+    external_id = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=120, blank=True)
+    digest_date = models.DateField(db_index=True)
+    body_md = models.TextField(help_text="Markdown content")
+    source_url = models.URLField(blank=True)
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default=STATUS_DRAFT, db_index=True
+    )
+    published_at = models.DateTimeField(null=True, blank=True)
+    # Provenance
+    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default="admin")
+    agent = models.ForeignKey(
+        AgentToken,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="digests",
+    )
+    tags = models.ManyToManyField(Tag, blank=True, related_name="digests")
+    mirrored_feed_item = models.OneToOneField(
+        FeedItem,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="digest",
+    )
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-digest_date", "-created_date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["series", "external_id"], name="unique_series_external_id"
+            ),
+            models.UniqueConstraint(
+                fields=["series", "slug"], name="unique_series_slug"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.series.name}: {self.title}"
+
+    def save(self, *args, **kwargs):
+        if not self.external_id:
+            self.external_id = self.digest_date.isoformat()
+        if not self.slug:
+            base = self.digest_date.isoformat()
+            slug, n = base, 2
+            while (
+                Digest.objects.filter(series=self.series, slug=slug)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
+                slug = f"{base}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse(
+            "blog:digest_detail",
+            kwargs={"series_slug": self.series.slug, "slug": self.slug},
+        )

@@ -18,7 +18,18 @@ from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import BlogPost, TIL, Bookmark, FeedItem, Tag, ProductUpdate, DailyBriefing
+from .intake import IntakeError, authenticate_token, submit_digest
+from .models import (
+    BlogPost,
+    TIL,
+    Bookmark,
+    FeedItem,
+    Tag,
+    ProductUpdate,
+    DailyBriefing,
+    Digest,
+    Series,
+)
 from .product_updates import (
     verify_github_signature,
     upsert_github_release,
@@ -450,4 +461,104 @@ def martor_local_uploader(request):
 
     return JsonResponse(
         {"status": 200, "link": public_url, "name": os.path.basename(saved_path)}
+    )
+
+
+# --- Digests & agent intake ---------------------------------------------------
+
+INTAKE_MAX_REQUEST_BYTES = 512 * 1024
+
+
+@csrf_exempt
+@require_POST
+def intake_api(request):
+    """POST /api/intake/ - authenticated agents submit digests as drafts."""
+    header = request.headers.get("Authorization", "")
+    key = header[7:].strip() if header.lower().startswith("bearer ") else ""
+    agent = authenticate_token(key)
+    if not agent:
+        return JsonResponse(
+            {"ok": False, "error": "invalid or missing token"}, status=401
+        )
+
+    if len(request.body) > INTAKE_MAX_REQUEST_BYTES:
+        return JsonResponse({"ok": False, "error": "request too large"}, status=413)
+    try:
+        payload = json.loads(request.body or b"{}")
+        if not isinstance(payload, dict):
+            raise ValueError
+    except ValueError:
+        return JsonResponse(
+            {"ok": False, "error": "body must be a JSON object"}, status=400
+        )
+
+    try:
+        digest, created = submit_digest(
+            series=payload.get("series", ""),
+            title=payload.get("title", ""),
+            digest_date=payload.get("date", ""),
+            body=payload.get("body", "") or "",
+            items=payload.get("items"),
+            external_id=str(payload.get("external_id", "") or ""),
+            tags=payload.get("tags") or [],
+            source_url=payload.get("source_url", "") or "",
+            source="api",
+            agent=agent,
+        )
+    except IntakeError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "id": digest.pk,
+            "created": created,
+            "status": digest.status,
+            "series": digest.series.slug,
+            "external_id": digest.external_id,
+            "url": digest.get_absolute_url() if digest.status == "published" else None,
+        },
+        status=201 if created else 200,
+    )
+
+
+def digest_index(request):
+    """Landing page for the Digests section: one card per series."""
+    series_list = []
+    for series in Series.objects.filter(is_active=True):
+        latest = series.digests.filter(status=Digest.STATUS_PUBLISHED).first()
+        if latest:
+            series_list.append({"series": series, "latest": latest})
+    latest_briefing = DailyBriefing.objects.filter(is_published=True).first()
+    return render(
+        request,
+        "blog/digest_index.html",
+        {"series_list": series_list, "latest_briefing": latest_briefing},
+    )
+
+
+def digest_series(request, series_slug):
+    """List published digests in one series."""
+    series = get_object_or_404(Series, slug=series_slug, is_active=True)
+    digests = series.digests.filter(status=Digest.STATUS_PUBLISHED).prefetch_related(
+        "tags"
+    )
+    page_obj = Paginator(digests, TILS_PER_PAGE).get_page(request.GET.get("page"))
+    return render(
+        request, "blog/digest_series.html", {"series": series, "page_obj": page_obj}
+    )
+
+
+def digest_detail(request, series_slug, slug):
+    """Show one published digest, rendered in the site's own style."""
+    digest = get_object_or_404(
+        Digest.objects.select_related("series").prefetch_related("tags"),
+        series__slug=series_slug,
+        slug=slug,
+        status=Digest.STATUS_PUBLISHED,
+    )
+    return render(
+        request,
+        "blog/digest_detail.html",
+        {"digest": digest, "content_html": render_markdown(digest.body_md)},
     )
