@@ -43,6 +43,8 @@ ALLOWED_TAGS = [
     "sub",
     "del",
     "ins",
+    "details",
+    "summary",
 ]
 
 ALLOWED_ATTRIBUTES = {
@@ -50,7 +52,9 @@ ALLOWED_ATTRIBUTES = {
     "img": ["src", "alt", "title", "width", "height"],
     "code": ["class", "style"],
     "pre": ["class", "style"],
+    "blockquote": ["class"],
     "div": ["class", "style"],
+    "details": ["open"],
     "span": ["class", "style"],
     "th": ["align"],
     "td": ["align"],
