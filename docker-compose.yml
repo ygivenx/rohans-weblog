@@ -19,8 +19,8 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             (while :; do python manage.py sync_briefing_email || true; sleep 15m; done) &
-             gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 60 rohans_weblog.wsgi:application"
+             { (while :; do python manage.py sync_briefing_email || true; sleep 15m; done) & } &&
+             exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 60 rohans_weblog.wsgi:application"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
