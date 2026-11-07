@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "martor",
     "blog",
+    "hackerstack",
 ]
 
 MIDDLEWARE = [

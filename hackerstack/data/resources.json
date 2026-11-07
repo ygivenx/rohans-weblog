@@ -1,0 +1,452 @@
+[
+  {
+    "title": "Simon Willison",
+    "url": "https://simonwillison.net/guides/agentic-engineering-patterns/",
+    "category": "engineering",
+    "kind": "website",
+    "description": "Practical agent workflows, tool use, testing, and coding patterns.",
+    "keywords": "agents coding harness"
+  },
+  {
+    "title": "Lilian Weng — Lil’Log",
+    "url": "https://lilianweng.github.io/",
+    "category": "engineering",
+    "kind": "website",
+    "description": "Research explanations of agents, harnesses, reinforcement learning, and scaling.",
+    "keywords": "llm rl reinforcement learning agents"
+  },
+  {
+    "title": "Hamel Husain",
+    "url": "https://hamel.dev/",
+    "category": "evals",
+    "kind": "website",
+    "description": "Evaluation, error analysis, and improving AI products through evidence.",
+    "keywords": "llm evals evaluation"
+  },
+  {
+    "title": "Eugene Yan",
+    "url": "https://eugeneyan.com/",
+    "category": "engineering",
+    "kind": "website",
+    "description": "Applied LLM architecture, retrieval, recommendations, and evaluation.",
+    "keywords": "llm rag retrieval"
+  },
+  {
+    "title": "Chip Huyen",
+    "url": "https://huyenchip.com/blog/",
+    "category": "production",
+    "kind": "website",
+    "description": "AI systems, agents, inference choices, and production engineering pitfalls.",
+    "keywords": "llm agents production"
+  },
+  {
+    "title": "Sebastian Raschka",
+    "url": "https://sebastianraschka.com/blog/",
+    "category": "llms",
+    "kind": "website",
+    "description": "LLM internals, reasoning models, training, and research explained through code.",
+    "keywords": "llm reasoning training"
+  },
+  {
+    "title": "Anthropic Engineering",
+    "url": "https://www.anthropic.com/engineering",
+    "category": "agents",
+    "kind": "website",
+    "description": "Engineering accounts of agent harnesses, context management, and evaluation.",
+    "keywords": "llm agents harness context"
+  },
+  {
+    "title": "Hugging Face Agents Course",
+    "url": "https://huggingface.co/learn/agents-course/en/unit0/introduction",
+    "category": "agents",
+    "kind": "course",
+    "description": "Structured introduction to agents, tools, frameworks, retrieval, and evaluation.",
+    "keywords": "llm agents rag tools"
+  },
+  {
+    "title": "mini-SWE-agent",
+    "url": "https://mini-swe-agent.com/",
+    "category": "agents",
+    "kind": "tool",
+    "description": "Compact coding-agent implementation for studying the execution loop.",
+    "keywords": "llm coding harness agents"
+  },
+  {
+    "title": "LangGraph",
+    "url": "https://docs.langchain.com/oss/python/langgraph/overview",
+    "category": "agents",
+    "kind": "documentation",
+    "description": "Stateful workflows, persistence, interruptions, and long-running agent execution.",
+    "keywords": "llm agents harness orchestration"
+  },
+  {
+    "title": "DSPy",
+    "url": "https://dspy.ai/",
+    "category": "agents",
+    "kind": "documentation",
+    "description": "Build and optimize LLM programs against metrics, beyond manual prompt tweaking.",
+    "keywords": "llm prompting optimization agents"
+  },
+  {
+    "title": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/docs/getting-started/intro",
+    "category": "agents",
+    "kind": "documentation",
+    "description": "Protocol for connecting AI applications to tools and external data.",
+    "keywords": "mcp agents tools protocol"
+  },
+  {
+    "title": "Karpathy — Zero to Hero",
+    "url": "https://karpathy.ai/zero-to-hero.html",
+    "category": "llms",
+    "kind": "course",
+    "description": "Build neural networks and language models from scratch through implementation.",
+    "keywords": "llm transformers neural networks"
+  },
+  {
+    "title": "Jay Alammar",
+    "url": "https://jalammar.github.io/",
+    "category": "llms",
+    "kind": "website",
+    "description": "Visual transformer explanations. This blog is an archive; newer writing is linked from it.",
+    "keywords": "llm transformers attention visualization"
+  },
+  {
+    "title": "Stanford CS336",
+    "url": "https://cs336.stanford.edu/",
+    "category": "llms",
+    "kind": "course",
+    "description": "Create language models: data, tokenization, architecture, training, and evaluation.",
+    "keywords": "llm training tokenization transformers"
+  },
+  {
+    "title": "Dive into Deep Learning",
+    "url": "https://d2l.ai/",
+    "category": "llms",
+    "kind": "course",
+    "description": "Interactive deep-learning textbook with mathematics and executable examples.",
+    "keywords": "llm neural networks mathematics"
+  },
+  {
+    "title": "RLHF Book",
+    "url": "https://rlhfbook.com/",
+    "category": "rl",
+    "kind": "course",
+    "description": "Nathan Lambert’s introduction to reward models, reinforcement learning, and LLM post-training.",
+    "keywords": "rl rlhf reinforcement learning post training dpo"
+  },
+  {
+    "title": "Hugging Face Deep RL Course",
+    "url": "https://huggingface.co/learn/deep-rl-course/en/unit0/introduction",
+    "category": "rl",
+    "kind": "course",
+    "description": "RL theory and exercises. Low-maintenance course; some community features no longer work.",
+    "keywords": "rl reinforcement learning ppo q learning"
+  },
+  {
+    "title": "CleanRL",
+    "url": "https://docs.cleanrl.dev/",
+    "category": "rl",
+    "kind": "documentation",
+    "description": "Readable single-file implementations of reinforcement-learning algorithms, including PPO and DQN.",
+    "keywords": "rl reinforcement learning ppo dqn"
+  },
+  {
+    "title": "TRL",
+    "url": "https://huggingface.co/docs/trl/index",
+    "category": "rl",
+    "kind": "documentation",
+    "description": "LLM post-training library for supervised fine-tuning, GRPO, DPO, and reward modeling.",
+    "keywords": "llm rl rlhf grpo reinforcement learning"
+  },
+  {
+    "title": "verl",
+    "url": "https://verl.readthedocs.io/en/latest/",
+    "category": "rl",
+    "kind": "documentation",
+    "description": "Distributed reinforcement-learning infrastructure for LLM post-training.",
+    "keywords": "llm rl reinforcement learning distributed"
+  },
+  {
+    "title": "Gymnasium",
+    "url": "https://gymnasium.farama.org/",
+    "category": "rl",
+    "kind": "documentation",
+    "description": "Environments, interfaces, and tutorials for training and evaluating RL agents.",
+    "keywords": "rl reinforcement learning environments"
+  },
+  {
+    "title": "Interconnects",
+    "url": "https://www.interconnects.ai/",
+    "category": "research",
+    "kind": "website",
+    "description": "Nathan Lambert’s analysis of model research, post-training, and the open-model ecosystem.",
+    "keywords": "llm rl rlhf research"
+  },
+  {
+    "title": "Hugging Face PEFT",
+    "url": "https://huggingface.co/docs/peft/index",
+    "category": "data",
+    "kind": "documentation",
+    "description": "Parameter-efficient model adaptation, including LoRA and related methods.",
+    "keywords": "llm fine tuning lora peft"
+  },
+  {
+    "title": "Unsloth",
+    "url": "https://unsloth.ai/docs",
+    "category": "data",
+    "kind": "documentation",
+    "description": "Tooling and guidance for running and training models with hardware constraints.",
+    "keywords": "llm fine tuning quantization"
+  },
+  {
+    "title": "Hugging Face Datasets",
+    "url": "https://huggingface.co/docs/datasets/index",
+    "category": "data",
+    "kind": "documentation",
+    "description": "Load, process, and manage datasets for model development.",
+    "keywords": "datasets training data"
+  },
+  {
+    "title": "Distilabel",
+    "url": "https://github.com/argilla-io/distilabel",
+    "category": "data",
+    "kind": "tool",
+    "description": "Synthetic-data and AI-feedback pipelines for automated dataset creation.",
+    "keywords": "synthetic data datasets llm"
+  },
+  {
+    "title": "Sentence Transformers",
+    "url": "https://www.sbert.net/",
+    "category": "retrieval",
+    "kind": "documentation",
+    "description": "Embeddings, semantic search, rerankers, and training retrieval models.",
+    "keywords": "rag embeddings retrieval search"
+  },
+  {
+    "title": "LlamaIndex",
+    "url": "https://developers.llamaindex.ai/python/framework/",
+    "category": "retrieval",
+    "kind": "documentation",
+    "description": "Document ingestion, retrieval-augmented generation, and data-connected agents.",
+    "keywords": "rag retrieval agents"
+  },
+  {
+    "title": "Qdrant",
+    "url": "https://qdrant.tech/documentation/",
+    "category": "retrieval",
+    "kind": "documentation",
+    "description": "Vector search, filtering, hybrid retrieval, and reranking.",
+    "keywords": "rag embeddings vector search"
+  },
+  {
+    "title": "Letta",
+    "url": "https://docs.letta.com/",
+    "category": "retrieval",
+    "kind": "documentation",
+    "description": "Stateful agents and memory management across interactions.",
+    "keywords": "llm memory agents harness"
+  },
+  {
+    "title": "Inspect AI",
+    "url": "https://inspect.aisi.org.uk/",
+    "category": "evals",
+    "kind": "documentation",
+    "description": "Model and agent evaluation with tools, scoring, sandboxing, and run inspection.",
+    "keywords": "llm evals evaluation harness agents"
+  },
+  {
+    "title": "LM Evaluation Harness",
+    "url": "https://github.com/EleutherAI/lm-evaluation-harness",
+    "category": "evals",
+    "kind": "tool",
+    "description": "Standardized language-model benchmark execution for reproducible comparisons.",
+    "keywords": "llm evals evaluation harness benchmark"
+  },
+  {
+    "title": "SWE-bench",
+    "url": "https://www.swebench.com/",
+    "category": "evals",
+    "kind": "website",
+    "description": "Software-engineering benchmarks based on repository tasks.",
+    "keywords": "llm coding agents evals benchmark"
+  },
+  {
+    "title": "Terminal-Bench",
+    "url": "https://www.tbench.ai/",
+    "category": "evals",
+    "kind": "website",
+    "description": "Benchmarks for agents performing tasks in terminal environments.",
+    "keywords": "llm agents terminal evals benchmark"
+  },
+  {
+    "title": "Artificial Analysis",
+    "url": "https://artificialanalysis.ai/",
+    "category": "evals",
+    "kind": "website",
+    "description": "Model and provider comparisons covering capability, speed, and cost.",
+    "keywords": "llm benchmark inference evaluation"
+  },
+  {
+    "title": "Promptfoo",
+    "url": "https://www.promptfoo.dev/docs/intro/",
+    "category": "evals",
+    "kind": "documentation",
+    "description": "Automated testing and red-teaming for prompts, models, and AI applications.",
+    "keywords": "llm evals evaluation security"
+  },
+  {
+    "title": "vLLM",
+    "url": "https://docs.vllm.ai/en/latest/",
+    "category": "inference",
+    "kind": "documentation",
+    "description": "Serve language models and manage inference workloads.",
+    "keywords": "llm inference gpu serving"
+  },
+  {
+    "title": "SGLang",
+    "url": "https://docs.sglang.io/",
+    "category": "inference",
+    "kind": "documentation",
+    "description": "Inference infrastructure: prefix caching, throughput, latency, and distributed serving.",
+    "keywords": "llm inference gpu caching"
+  },
+  {
+    "title": "llama.cpp",
+    "url": "https://github.com/ggml-org/llama.cpp",
+    "category": "inference",
+    "kind": "tool",
+    "description": "Local language-model inference in C/C++ across different hardware.",
+    "keywords": "llm local inference quantization"
+  },
+  {
+    "title": "PyTorch Tutorials",
+    "url": "https://docs.pytorch.org/tutorials/",
+    "category": "inference",
+    "kind": "documentation",
+    "description": "Hands-on material for training, debugging, and optimizing models.",
+    "keywords": "gpu training pytorch"
+  },
+  {
+    "title": "Triton Tutorials",
+    "url": "https://triton-lang.org/main/getting-started/tutorials/index.html",
+    "category": "inference",
+    "kind": "documentation",
+    "description": "GPU kernel programming tutorials for understanding and optimizing operations.",
+    "keywords": "gpu kernels inference performance"
+  },
+  {
+    "title": "Full Stack Deep Learning",
+    "url": "https://fullstackdeeplearning.com/",
+    "category": "production",
+    "kind": "course",
+    "description": "Connect model development to deploying complete AI products.",
+    "keywords": "llm mlops deployment production"
+  },
+  {
+    "title": "Langfuse",
+    "url": "https://langfuse.com/docs",
+    "category": "production",
+    "kind": "documentation",
+    "description": "Tracing, evaluation, and debugging of AI applications and agent runs.",
+    "keywords": "llm observability tracing agents"
+  },
+  {
+    "title": "Arize Phoenix",
+    "url": "https://arize.com/docs/phoenix",
+    "category": "production",
+    "kind": "documentation",
+    "description": "Observability and evaluation for inspecting LLM application behavior.",
+    "keywords": "llm observability tracing evals"
+  },
+  {
+    "title": "Transformer Circuits",
+    "url": "https://transformer-circuits.pub/",
+    "category": "safety",
+    "kind": "website",
+    "description": "Primary research into the internal mechanisms of language models.",
+    "keywords": "llm interpretability circuits safety"
+  },
+  {
+    "title": "ARENA",
+    "url": "https://www.arena.education/",
+    "category": "safety",
+    "kind": "course",
+    "description": "Technical AI-safety curriculum with online materials for independent study.",
+    "keywords": "interpretability safety alignment"
+  },
+  {
+    "title": "OWASP GenAI Security",
+    "url": "https://genai.owasp.org/",
+    "category": "safety",
+    "kind": "website",
+    "description": "Application-security guidance and threat categories for generative AI systems.",
+    "keywords": "llm security prompt injection safety"
+  },
+  {
+    "title": "Hugging Face Diffusers",
+    "url": "https://huggingface.co/docs/diffusers/index",
+    "category": "multimodal",
+    "kind": "documentation",
+    "description": "Building blocks for image, video, and audio generation.",
+    "keywords": "diffusion image video audio"
+  },
+  {
+    "title": "Hugging Face Audio Course",
+    "url": "https://huggingface.co/learn/audio-course/en/chapter0/introduction",
+    "category": "multimodal",
+    "kind": "course",
+    "description": "Speech recognition, audio classification, and speech generation.",
+    "keywords": "audio speech multimodal"
+  },
+  {
+    "title": "LeRobot",
+    "url": "https://huggingface.co/docs/lerobot/index",
+    "category": "multimodal",
+    "kind": "documentation",
+    "description": "Robot datasets, imitation learning, reinforcement learning, and policy deployment.",
+    "keywords": "robotics rl reinforcement learning"
+  },
+  {
+    "title": "Hugging Face Papers",
+    "url": "https://huggingface.co/papers",
+    "category": "research",
+    "kind": "website",
+    "description": "Community-selected papers connected to model and code resources.",
+    "keywords": "llm papers research"
+  },
+  {
+    "title": "Latent Space",
+    "url": "https://latent.space/",
+    "category": "research",
+    "kind": "website",
+    "description": "Interviews, articles, and discussions with people building AI systems.",
+    "keywords": "llm agents research engineering"
+  },
+  {
+    "title": "alphaXiv",
+    "url": "https://www.alphaxiv.org/",
+    "category": "research",
+    "kind": "website",
+    "description": "Research discovery organized around papers, researchers, and related work.",
+    "keywords": "papers research llm"
+  },
+  {
+    "title": "Berkeley AI Research",
+    "url": "https://bair.berkeley.edu/blog/",
+    "category": "research",
+    "kind": "website",
+    "description": "Research explanations spanning agents, learning, robotics, and AI systems.",
+    "keywords": "rl reinforcement learning research agents"
+  },
+  {
+    "title": "Effective harnesses for long-running agents",
+    "url": "https://www.anthropic.com/research/effective-harnesses-for-long-running-agents",
+    "category": "agents",
+    "kind": "article",
+    "description": "Environment setup, incremental progress, and durable artifacts across agent sessions.",
+    "keywords": "llm agents harness context",
+    "content_date": "2025-11-26",
+    "date_basis": "Publisher date"
+  }
+]

@@ -52,6 +52,9 @@ jobs:
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           DJANGO_DEBUG: "False"
           DJANGO_ALLOWED_HOSTS: localhost
+
+      - name: Run tests
+        run: uv run python manage.py test --noinput
       
       - name: Check code formatting (black)
         run: uv run black --check --diff .

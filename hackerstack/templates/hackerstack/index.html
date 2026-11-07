@@ -1,0 +1,61 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+{% block title %}HackerStack — Rohan's Weblog{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'hackerstack/catalog.css' %}">{% endblock %}
+{% block content %}
+<div class="hs">
+  <div class="hs-intro">
+    <p class="hs-eyebrow">A field guide to building with AI</p>
+    <h2>HackerStack<span aria-hidden="true">↗</span></h2>
+    <p class="hs-lede">Good links. Useful context. Less noise.</p>
+    <p class="hs-subtitle">Explore agents, language models, and the systems around them. Ranked with community evidence and an eye on what ages well.</p>
+    <div class="hs-stats"><span><strong>{{ total }}</strong> indexed resources</span><span>12 topic collections</span><a href="#method">How ranking works ↓</a></div>
+    <p class="hs-coverage"><strong>Building the historical index.</strong> HN: {{ coverage.complete|default:0 }} date windows scanned, {{ coverage.pending|default:0 }} pending across {{ coverage_queries }} discovery queries.{% if coverage.blocked or coverage.review %} Some windows require review.{% endif %} Lobsters: {{ lobsters_count }} resources imported. This is not complete coverage of either community.</p>
+  </div>
+
+  <form method="get" class="hs-search" role="search" aria-label="Search HackerStack">
+    <label for="hs-query">Find your next useful link</label>
+    <div class="hs-search-row"><input type="search" id="hs-query" name="q" value="{{ q }}" maxlength="200" placeholder="Try agents, RL, evaluation, or GPU…"><button type="submit">Search <span aria-hidden="true">↗</span></button></div>
+    <div class="hs-filters">
+      <label>Topic<select name="category"><option value="">All topics</option>{% for key,label,count in categories %}<option value="{{ key }}" {% if category == key %}selected{% endif %}>{{ label }} ({{ count }})</option>{% endfor %}</select></label>
+      <label>Format<select name="kind"><option value="">All formats</option>{% for key,label in kinds %}<option value="{{ key }}" {% if kind == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Evidence<select name="source"><option value="">All resources</option><option value="curated" {% if source == 'curated' %}selected{% endif %}>Editor's directory</option><option value="hn" {% if source == 'hn' %}selected{% endif %}>Hacker News</option><option value="lobsters" {% if source == 'lobsters' %}selected{% endif %}>Lobsters imports</option></select></label>
+      <label>Order<select name="sort"><option value="rank" {% if sort == 'rank' %}selected{% endif %}>Recommended</option><option value="popular" {% if sort == 'popular' %}selected{% endif %}>Community popularity</option><option value="fresh" {% if sort == 'fresh' %}selected{% endif %}>Freshness signal</option></select></label>
+    </div>
+  </form>
+
+  <nav class="hs-topics" aria-label="Browse topics"><a href="{% url 'hackerstack:index' %}" {% if not category %}aria-current="page"{% endif %}>Everything</a>{% for key,label,count in categories %}<a href="?category={{ key }}&amp;q={{ q|urlencode }}&amp;kind={{ kind|urlencode }}&amp;source={{ source|urlencode }}&amp;sort={{ sort|urlencode }}" {% if category == key %}aria-current="page"{% endif %}>{{ label }} <span>{{ count }}</span></a>{% endfor %}</nav>
+
+  <div class="hs-results-head"><p><strong>{{ page.paginator.count }}</strong> result{{ page.paginator.count|pluralize }}{% if q %} for “{{ q }}”{% endif %}{% if show %} <em>filtered out by page review</em>{% endif %}</p>{% if q or category or kind or source or show %}<a href="{% url 'hackerstack:index' %}">Clear filters</a>{% else %}<span>Follow your curiosity.</span>{% endif %}{% if filtered_count and not show %}<a href="?show=filtered">Show {{ filtered_count }} filtered out</a>{% endif %}</div>
+  <ol class="hs-results" start="{{ page.start_index }}">
+    {% for resource in page %}
+    <li class="hs-result">
+      <div class="hs-result-top"><div class="hs-tags"><span>{{ resource.topic_label }}{% if resource.topic_changed_by_review %} <abbr title="Topic chosen by an AI review of the page; the keyword match said {{ resource.get_category_display }}">✦</abbr>{% endif %}</span><span>{{ resource.get_kind_display }}</span>{% if resource.curated %}<span class="hs-curated">Editor's pick</span>{% endif %}</div><span class="hs-score" title="Editorial ranking score, not a quality percentage">{{ resource.score|floatformat:1 }}<small> rank</small></span></div>
+      <h3><a href="{{ resource.url }}" rel="noopener noreferrer">{{ resource.title }} <span aria-hidden="true">↗</span></a></h3>
+      <p class="hs-url">{{ resource.url|truncatechars:90 }}</p>
+      <p class="hs-description">{{ resource.description }}</p>{% if show and resource.llm_reason %}<p class="hs-filtered-note">Filtered: {{ resource.llm_reason }}</p>{% endif %}
+      <div class="hs-meta"><span>{% if resource.content_date %}Content date {{ resource.content_date|date:'M j, Y' }}{% else %}Content date unknown{% endif %}</span><span>{% if resource.evidence_count %}{{ resource.evidence_count }} discussion{{ resource.evidence_count|pluralize }}{% else %}No community evidence collected{% endif %}</span></div>
+      <details class="hs-evidence"><summary>Why this ranks here</summary>
+        <p>Popularity {{ resource.popularity|floatformat:2 }} · Corroboration {{ resource.corroboration|floatformat:2 }} · Freshness {{ resource.freshness|floatformat:2 }} (each 0–1). Decay half-life: {{ resource.half_life_days }} days. {% if resource.curated %}Includes an editorial selection bonus.{% endif %}</p>
+        {% if resource.content_date %}<p>Date basis: {{ resource.date_basis|default:'Editor-supplied content date' }}.</p>{% else %}<p>Freshness starts at 0.5 when the content date is unknown. An older discussion may lower it further; a new submission or crawl never resets the content age.</p>{% endif %}
+        <ul>{% for evidence in resource.evidence.all|slice:':5' %}<li><a href="{{ evidence.discussion_url }}" rel="noopener noreferrer">{{ evidence.get_source_display }}: {{ evidence.title }}</a> — {% if evidence.points != None %}{{ evidence.points }} points{% else %}votes unknown{% endif %}, {{ evidence.comments }} comments. {{ evidence.get_kind_display }}{% if evidence.published_at %}, {{ evidence.published_at|date:'M j, Y' }}{% endif %}. Observed {{ evidence.observed_at|date:'M j, Y' }}.</li>{% empty %}<li>Editorial seed; no community popularity is assumed.</li>{% endfor %}</ul>
+        {% if resource.evidence_count > 5 %}<p>Showing five discussions; all indexed evidence contributes to the score.</p>{% endif %}
+      </details>
+    </li>
+    {% empty %}<li class="hs-empty"><h3>No matching links yet.</h3><p>Try fewer words or another topic. Search matches words in titles, descriptions, URLs, and tags—not the full text of every linked page.</p><a href="{% url 'hackerstack:index' %}">Explore the directory →</a></li>{% endfor %}
+  </ol>
+  {% if page.has_other_pages %}<nav class="hs-pagination" aria-label="Search result pages">{% if page.has_previous %}<a href="?{{ querystring }}&amp;page={{ page.previous_page_number }}">← Previous</a>{% endif %}<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ querystring }}&amp;page={{ page.next_page_number }}">Next →</a>{% endif %}</nav>{% endif %}
+
+  <section id="method" class="hs-method" aria-labelledby="method-title">
+    <h3 id="method-title">Useful now. Worth keeping.</h3>
+    <p>A transparent starting formula, not a claim of objective quality. Search requires matching words; an exact title phrase gets priority in the recommended order.</p>
+    <p class="hs-formula">Score = 100 × (0.20 + 0.45P + 0.20C + 0.15E) × (0.20 + 0.80F)</p>
+    <dl><dt>P · Popularity</dt><dd>The strongest submission's ln(1 + votes) / [ln(1 + votes) + ln(1 + scale)]. Reference scales: 500 HN points or 100 Lobsters points; each earns 0.5. Further votes have diminishing returns. These are tuning choices, not measured percentiles. Comment mentions do not inherit their parent story's votes.</dd>
+    <dt>C · Corroboration</dt><dd>1 − exp(−distinct discussions / 3). Repeated imports and multiple links from one thread never add extra discussions. A discussion is evidence of attention, not necessarily endorsement.</dd>
+    <dt>E · Editorial selection</dt><dd>1 for a curated directory entry; 0 for an automatically discovered link.</dd>
+    <dt>F · Freshness</dt><dd>2 raised to −age / half-life. News: 30 days; tools and docs: 180; articles and websites: 365; papers: 730; courses: 1,825. Editors can adjust the half-life. Unknown content dates start at 0.5, with the earliest discussion providing a conservative age penalty. Fetching a page never makes it new.</dd></dl>
+    <p class="hs-coverage"><strong>Page review:</strong> for links whose page we could fetch, an AI model (Gemini 3.8 Flash) read the page title, heading and description to hide off-topic links and refine the topic (marked ✦). It can be wrong; hidden links are one click away (“Show … filtered out”). Pages that blocked us are not reviewed and keep their keyword topic.</p>
+    <p class="hs-coverage"><strong>Index coverage:</strong> a curated seed directory plus bounded HN submission searches and selected discussion links. Automated categories are collection labels, not verified classifications. Lobsters requires a permitted export; no direct crawler is enabled. Search indexes metadata, not full linked pages. {% if last_run %}Last collection: {{ last_run.started_at|date:'M j, Y H:i' }} UTC · {{ last_run.status }} · {{ last_run.requests }} requests · {{ last_run.records }} records processed. {{ last_run.detail }}{% else %}Community collection has not run yet.{% endif %} {% if ranked_at %}Scores calculated {{ ranked_at|date:'M j, Y H:i' }} UTC.{% endif %}</p>
+  </section>
+</div>
+{% endblock %}

@@ -13,6 +13,23 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: weblog_test
+          POSTGRES_USER: weblog
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U weblog -d weblog_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      POSTGRES_DB: weblog_test
+      POSTGRES_USER: weblog
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_HOST: localhost
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +57,9 @@ jobs:
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           DJANGO_DEBUG: "False"
           DJANGO_ALLOWED_HOSTS: localhost
+
+      - name: Run tests against PostgreSQL before deployment
+        run: uv run python manage.py test --noinput
 
   deploy:
     name: Deploy to VPS

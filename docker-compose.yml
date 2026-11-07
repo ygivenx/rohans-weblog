@@ -45,6 +45,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  hackerstack-indexer:
+    build: .
+    command: python manage.py run_hackerstack_worker
+    mem_limit: 256m
+    cpus: 0.5
+    volumes:
+      - hackerstack_cache:/app/.cache/hackerstack
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "False"
+      POSTGRES_DB: ${POSTGRES_DB:-weblog}
+      POSTGRES_USER: ${POSTGRES_USER:-weblog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: unless-stopped
+
   nginx:
     image: nginx:alpine
     # Reload every 6h so renewed certs are picked up
@@ -71,6 +92,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  hackerstack_cache:
   postgres_data:
   static_volume:
   media_volume:

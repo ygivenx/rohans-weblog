@@ -61,6 +61,7 @@ Thumbs.db
 # Build / cache
 # =========================
 dist/
+.cache/
 build/
 *.egg-info/
 

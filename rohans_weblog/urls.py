@@ -27,6 +27,7 @@ urlpatterns = [
         name="favicon",
     ),
     path("admin/", admin.site.urls),
+    path("hackerstack/", include("hackerstack.urls")),
     path("martor/uploader/", martor_local_uploader, name="martor_uploader"),
     path("martor/", include("martor.urls")),
     path("", include("blog.urls")),

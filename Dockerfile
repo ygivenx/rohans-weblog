@@ -26,7 +26,7 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 
 # Create non-root user
-RUN useradd -m -u 1000 django && chown -R django:django /app
+RUN useradd -m -u 1000 django && mkdir -p /app/.cache/hackerstack && chown -R django:django /app
 USER django
 
 # Expose port
