@@ -9,24 +9,23 @@
     <h2>HackerStack<span aria-hidden="true">↗</span></h2>
     <p class="hs-lede">Good links. Useful context. Less noise.</p>
     <p class="hs-subtitle">Explore agents, language models, and the systems around them. Ranked with community evidence and an eye on what ages well.</p>
-    <div class="hs-stats"><span><strong>{{ total }}</strong> indexed resources</span><span>12 topic collections</span><a href="#method">How ranking works ↓</a></div>
-    <p class="hs-coverage"><strong>Building the historical index.</strong> HN: {{ coverage.complete|default:0 }} date windows scanned, {{ coverage.pending|default:0 }} pending across {{ coverage_queries }} discovery queries.{% if coverage.blocked or coverage.review %} Some windows require review.{% endif %} Lobsters: {{ lobsters_count }} resources imported. This is not complete coverage of either community.</p>
+    <div class="hs-stats"><a href="#method">How ranking works ↓</a></div>
   </div>
 
   <form method="get" class="hs-search" role="search" aria-label="Search HackerStack">
     <label for="hs-query">Find your next useful link</label>
     <div class="hs-search-row"><input type="search" id="hs-query" name="q" value="{{ q }}" maxlength="200" placeholder="Try agents, RL, evaluation, or GPU…"><button type="submit">Search <span aria-hidden="true">↗</span></button></div>
     <div class="hs-filters">
-      <label>Topic<select name="category"><option value="">All topics</option>{% for key,label,count in categories %}<option value="{{ key }}" {% if category == key %}selected{% endif %}>{{ label }} ({{ count }})</option>{% endfor %}</select></label>
+      <label>Topic<select name="category"><option value="">All topics</option>{% for key,label in categories %}<option value="{{ key }}" {% if category == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
       <label>Format<select name="kind"><option value="">All formats</option>{% for key,label in kinds %}<option value="{{ key }}" {% if kind == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
       <label>Evidence<select name="source"><option value="">All resources</option><option value="curated" {% if source == 'curated' %}selected{% endif %}>Editor's directory</option><option value="hn" {% if source == 'hn' %}selected{% endif %}>Hacker News</option><option value="lobsters" {% if source == 'lobsters' %}selected{% endif %}>Lobsters imports</option></select></label>
       <label>Order<select name="sort"><option value="rank" {% if sort == 'rank' %}selected{% endif %}>Recommended</option><option value="popular" {% if sort == 'popular' %}selected{% endif %}>Community popularity</option><option value="fresh" {% if sort == 'fresh' %}selected{% endif %}>Freshness signal</option></select></label>
     </div>
   </form>
 
-  <nav class="hs-topics" aria-label="Browse topics"><a href="{% url 'hackerstack:index' %}" {% if not category %}aria-current="page"{% endif %}>Everything</a>{% for key,label,count in categories %}<a href="?category={{ key }}&amp;q={{ q|urlencode }}&amp;kind={{ kind|urlencode }}&amp;source={{ source|urlencode }}&amp;sort={{ sort|urlencode }}" {% if category == key %}aria-current="page"{% endif %}>{{ label }} <span>{{ count }}</span></a>{% endfor %}</nav>
+  <nav class="hs-topics" aria-label="Browse topics"><a href="{% url 'hackerstack:index' %}" {% if not category %}aria-current="page"{% endif %}>Everything</a>{% for key,label in categories %}<a href="?category={{ key }}&amp;q={{ q|urlencode }}&amp;kind={{ kind|urlencode }}&amp;source={{ source|urlencode }}&amp;sort={{ sort|urlencode }}" {% if category == key %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
 
-  <div class="hs-results-head"><p><strong>{{ page.paginator.count }}</strong> result{{ page.paginator.count|pluralize }}{% if q %} for “{{ q }}”{% endif %}{% if show %} <em>filtered out by page review</em>{% endif %}</p>{% if q or category or kind or source or show %}<a href="{% url 'hackerstack:index' %}">Clear filters</a>{% else %}<span>Follow your curiosity.</span>{% endif %}{% if filtered_count and not show %}<a href="?show=filtered">Show {{ filtered_count }} filtered out</a>{% endif %}</div>
+  <div class="hs-results-head"><p>{% if show %}Links filtered out by page review{% elif q %}Results for “{{ q }}”{% endif %}</p>{% if q or category or kind or source or show %}<a href="{% url 'hackerstack:index' %}">Clear filters</a>{% else %}<span>Follow your curiosity.</span>{% endif %}{% if has_filtered and not show %}<a href="?show=filtered">Show filtered-out links</a>{% endif %}</div>
   <ol class="hs-results" start="{{ page.start_index }}">
     {% for resource in page %}
     <li class="hs-result">
@@ -34,7 +33,7 @@
       <h3><a href="{{ resource.url }}" rel="noopener noreferrer">{{ resource.title }} <span aria-hidden="true">↗</span></a></h3>
       <p class="hs-url">{{ resource.url|truncatechars:90 }}</p>
       <p class="hs-description">{{ resource.description }}</p>{% if show and resource.llm_reason %}<p class="hs-filtered-note">Filtered: {{ resource.llm_reason }}</p>{% endif %}
-      <div class="hs-meta"><span>{% if resource.content_date %}Content date {{ resource.content_date|date:'M j, Y' }}{% else %}Content date unknown{% endif %}</span><span>{% if resource.evidence_count %}{{ resource.evidence_count }} discussion{{ resource.evidence_count|pluralize }}{% else %}No community evidence collected{% endif %}</span></div>
+      {% if resource.content_date or resource.discussed_at or resource.evidence_count %}<div class="hs-meta">{% if resource.content_date %}<span>{{ resource.content_date|date:'M Y' }}</span>{% elif resource.discussed_at %}<span>HN · {{ resource.discussed_at|date:'M Y' }}</span>{% endif %}{% if resource.evidence_count %}<span>{{ resource.evidence_count }} discussion{{ resource.evidence_count|pluralize }}</span>{% endif %}</div>{% endif %}
       <details class="hs-evidence"><summary>Why this ranks here</summary>
         <p>Popularity {{ resource.popularity|floatformat:2 }} · Corroboration {{ resource.corroboration|floatformat:2 }} · Freshness {{ resource.freshness|floatformat:2 }} (each 0–1). Decay half-life: {{ resource.half_life_days }} days. {% if resource.curated %}Includes an editorial selection bonus.{% endif %}</p>
         {% if resource.content_date %}<p>Date basis: {{ resource.date_basis|default:'Editor-supplied content date' }}.</p>{% else %}<p>Freshness starts at 0.5 when the content date is unknown. An older discussion may lower it further; a new submission or crawl never resets the content age.</p>{% endif %}
@@ -44,7 +43,7 @@
     </li>
     {% empty %}<li class="hs-empty"><h3>No matching links yet.</h3><p>Try fewer words or another topic. Search matches words in titles, descriptions, URLs, and tags—not the full text of every linked page.</p><a href="{% url 'hackerstack:index' %}">Explore the directory →</a></li>{% endfor %}
   </ol>
-  {% if page.has_other_pages %}<nav class="hs-pagination" aria-label="Search result pages">{% if page.has_previous %}<a href="?{{ querystring }}&amp;page={{ page.previous_page_number }}">← Previous</a>{% endif %}<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{{ querystring }}&amp;page={{ page.next_page_number }}">Next →</a>{% endif %}</nav>{% endif %}
+  {% if page.has_other_pages %}<nav class="hs-pagination" aria-label="Search result pages">{% if page.has_previous %}<a href="?{{ querystring }}&amp;page={{ page.previous_page_number }}">← Previous</a>{% endif %}<span>Page {{ page.number }}</span>{% if page.has_next %}<a href="?{{ querystring }}&amp;page={{ page.next_page_number }}">Next →</a>{% endif %}</nav>{% endif %}
 
   <section id="method" class="hs-method" aria-labelledby="method-title">
     <h3 id="method-title">Useful now. Worth keeping.</h3>
@@ -54,8 +53,8 @@
     <dt>C · Corroboration</dt><dd>1 − exp(−distinct discussions / 3). Repeated imports and multiple links from one thread never add extra discussions. A discussion is evidence of attention, not necessarily endorsement.</dd>
     <dt>E · Editorial selection</dt><dd>1 for a curated directory entry; 0 for an automatically discovered link.</dd>
     <dt>F · Freshness</dt><dd>2 raised to −age / half-life. News: 30 days; tools and docs: 180; articles and websites: 365; papers: 730; courses: 1,825. Editors can adjust the half-life. Unknown content dates start at 0.5, with the earliest discussion providing a conservative age penalty. Fetching a page never makes it new.</dd></dl>
-    <p class="hs-coverage"><strong>Page review:</strong> for links whose page we could fetch, an AI model (Gemini 3.8 Flash) read the page title, heading and description to hide off-topic links and refine the topic (marked ✦). It can be wrong; hidden links are one click away (“Show … filtered out”). Pages that blocked us are not reviewed and keep their keyword topic.</p>
-    <p class="hs-coverage"><strong>Index coverage:</strong> a curated seed directory plus bounded HN submission searches and selected discussion links. Automated categories are collection labels, not verified classifications. Lobsters requires a permitted export; no direct crawler is enabled. Search indexes metadata, not full linked pages. {% if last_run %}Last collection: {{ last_run.started_at|date:'M j, Y H:i' }} UTC · {{ last_run.status }} · {{ last_run.requests }} requests · {{ last_run.records }} records processed. {{ last_run.detail }}{% else %}Community collection has not run yet.{% endif %} {% if ranked_at %}Scores calculated {{ ranked_at|date:'M j, Y H:i' }} UTC.{% endif %}</p>
+    <p class="hs-coverage"><strong>Page review:</strong> for links whose page we could fetch, an AI model (Gemini 3.8 Flash) read the page title, heading and description to hide off-topic links and refine the topic (marked ✦). It can be wrong; hidden links are one click away (“Show filtered-out links”). Pages that blocked us are not reviewed and keep their keyword topic.</p>
+    <p class="hs-coverage"><strong>Index coverage:</strong> a curated seed directory plus bounded HN submission searches and selected discussion links. This is not complete coverage of Hacker News or Lobsters. Automated categories are collection labels, not verified classifications. Lobsters requires a permitted export; no direct crawler is enabled. Search indexes titles, descriptions and links, not the full text of every page. {% if ranked_at %}Scores calculated {{ ranked_at|date:'M j, Y' }}.{% endif %}</p>
   </section>
 </div>
 {% endblock %}

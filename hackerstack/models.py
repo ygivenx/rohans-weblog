@@ -63,6 +63,12 @@ class Resource(models.Model):
     llm_classified_at = models.DateTimeField(null=True, blank=True)
 
     @property
+    def discussed_at(self):
+        """Earliest known discussion time; uses prefetched evidence, never a crawl timestamp."""
+        dates = [e.published_at for e in self.evidence.all() if e.published_at]
+        return min(dates) if dates else None
+
+    @property
     def topic(self):
         """Topic shown on the site: the AI review's category only when it judged the link relevant."""
         if self.llm_relevant and self.llm_category:

@@ -5,7 +5,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.core.management import call_command
-from django.db import connection
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -567,13 +566,15 @@ class ClassifyTests(TestCase):
 
 class ReviewViewTests(TestCase):
     def setUp(self):
-        mk = lambda n, **kw: Resource.objects.create(
-            url=f"https://v{n}.example/",
-            title=f"Title{n}",
-            category="engineering",
-            score=50 - n,
-            **kw,
-        )
+        def mk(n, **kw):
+            return Resource.objects.create(
+                url=f"https://v{n}.example/",
+                title=f"Title{n}",
+                category="engineering",
+                score=50 - n,
+                **kw,
+            )
+
         self.plain = mk(1)  # never reviewed
         self.kept = mk(
             2, llm_relevant=True, llm_category="agents", llm_reason="agent tool"
@@ -592,21 +593,15 @@ class ReviewViewTests(TestCase):
         self.assertIn("Title1", body)
         self.assertIn("Title2", body)
         self.assertNotIn("Title3", body)
-        self.assertIn("Show 1 filtered out", body)
+        self.assertIn("Show filtered-out links", body)
 
-    def test_topic_filter_and_counts_use_reviewed_topic(self):
+    def test_topic_filter_uses_reviewed_topic(self):
         agents = self.get("?category=agents").content.decode()
         self.assertIn("Title2", agents)
         self.assertNotIn("Title1", agents)
         eng = self.get("?category=engineering").content.decode()
         self.assertIn("Title1", eng)
         self.assertNotIn("Title2", eng)  # moved out of its keyword topic
-        resp = self.get()
-        counts = {k: n for k, _, n in resp.context["categories"]}
-        self.assertEqual(
-            (counts["engineering"], counts["agents"], counts["safety"]), (1, 1, 0)
-        )
-        self.assertEqual(resp.context["total"], 2)
 
     def test_marker_only_on_retopiced_rows(self):
         body = self.get().content.decode()
@@ -859,3 +854,82 @@ class SnapshotChunkTests(TestCase):
             stats = load_snapshot(path)
         self.assertEqual((Resource.objects.count(), Evidence.objects.count()), (5, 5))
         self.assertEqual(stats["evidence_seen"], 5)
+
+
+class ConsumablePageTests(TestCase):
+    """The page is for finding a link: no totals, no 'unknown' labels."""
+
+    @override_settings(STORAGES=STORAGES)
+    def get(self, query=""):
+        return self.client.get("/hackerstack/" + query)
+
+    def test_no_totals_banners_or_counts_anywhere(self):
+        from .models import CATEGORIES
+
+        for i in range(30):  # forces a second page
+            Resource.objects.create(
+                url=f"https://n{i}.example/", title=f"N{i}", category="agents", score=i
+            )
+        BackfillWindow.objects.create(
+            query="q", category="agents", start=1, end=2, status="complete"
+        )
+        for query in ("", "?category=agents", "?q=N1", "?page=2"):
+            body = self.get(query).content.decode()
+            for banned in (
+                "indexed resources",
+                "topic collections",
+                "Building the historical index",
+                "date windows scanned",
+                "discovery queries",
+                "resources imported",
+                "result</",
+                "results</",
+                " of 2",
+            ):
+                self.assertNotIn(banned, body, (query, banned))
+        body = self.get().content.decode()
+        for _, label in CATEGORIES:
+            self.assertNotRegex(body, rf"{label.replace('&', '&amp;')}\s*\(\d+\)")
+            self.assertNotRegex(
+                body, rf"{label.replace('&', '&amp;')}\s*<span>\d+</span>"
+            )
+        self.assertIn("Page 2", self.get("?page=2").content.decode())
+
+    def test_never_says_date_unknown_or_no_evidence(self):
+        Resource.objects.create(
+            url="https://u.example/", title="Undated", category="agents", score=1
+        )
+        body = self.get().content.decode()
+        self.assertIn("Undated", body)
+        self.assertNotIn("Content date unknown", body)
+        self.assertNotIn("No community evidence", body)
+        self.assertNotIn('class="hs-meta"', body)  # nothing to show, so no empty row
+
+    def test_shows_content_date_when_known(self):
+        Resource.objects.create(
+            url="https://d.example/",
+            title="Dated",
+            category="agents",
+            score=1,
+            content_date=date(2023, 5, 1),
+        )
+        self.assertIn("<span>May 2023</span>", self.get().content.decode())
+
+    def test_shows_hn_month_from_discussion_when_no_content_date(self):
+        from datetime import datetime, timezone as tz
+
+        r = Resource.objects.create(
+            url="https://h.example/", title="Discussed", category="agents", score=1
+        )
+        for n, month in enumerate((7, 3)):  # earliest discussion wins
+            Evidence.objects.create(
+                resource=r,
+                source="hn",
+                source_id=str(n),
+                thread_id=str(n),
+                discussion_url=f"https://news.ycombinator.com/item?id={n}",
+                published_at=datetime(2024, month, 5, tzinfo=tz.utc),
+            )
+        body = self.get().content.decode()
+        self.assertIn("HN · Mar 2024", body)
+        self.assertNotIn("Content date", body)

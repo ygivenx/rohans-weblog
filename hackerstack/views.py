@@ -1,8 +1,8 @@
 from django.core.paginator import Paginator
-from django.db.models import Case, CharField, Count, F, Max, Q, When
+from django.db.models import Case, CharField, F, Max, Q, When
 from django.shortcuts import render
 
-from .models import CATEGORIES, KINDS, BackfillWindow, CollectionRun, Resource
+from .models import CATEGORIES, KINDS, Resource
 from .search import search
 
 
@@ -21,15 +21,13 @@ def index(request):
             output_field=CharField(),
         )
     )
-    filtered_count = everything.filter(llm_relevant=False).count()
+    has_filtered = everything.filter(llm_relevant=False).exists()
     # Links the page review judged off-topic are hidden unless asked for.
     resources = (
         everything.filter(llm_relevant=False)
         if show
         else everything.exclude(llm_relevant=False)
     )
-    total = resources.count()
-    counts = dict(resources.values_list("topic_key").annotate(n=Count("id")))
     if category in dict(CATEGORIES):
         resources = resources.filter(topic_key=category)
     if kind in dict(KINDS):
@@ -63,19 +61,10 @@ def index(request):
             source=source,
             sort=sort,
             show=show,
-            filtered_count=filtered_count,
-            categories=[(key, label, counts.get(key, 0)) for key, label in CATEGORIES],
+            has_filtered=has_filtered,
+            categories=list(CATEGORIES),
             kinds=KINDS,
-            total=total,
-            coverage=dict(
-                BackfillWindow.objects.values_list("status").annotate(n=Count("id"))
-            ),
-            coverage_queries=BackfillWindow.objects.values("query").distinct().count(),
-            lobsters_count=Resource.objects.filter(evidence__source="lobsters")
-            .distinct()
-            .count(),
             querystring=params.urlencode(),
-            last_run=CollectionRun.objects.order_by("-started_at").first(),
             ranked_at=Resource.objects.aggregate(value=Max("ranked_at"))["value"],
         ),
     )
