@@ -45,9 +45,17 @@ def components(resource, evidence, today=None):
             # The oldest discussion establishes a minimum age, not a publication date.
             age = max(0, (today - min(dates)).days)
             freshness = min(freshness, 2 ** (-age / max(1, resource.half_life_days)))
+    # R: Jev's probability that the link is on-topic; unreviewed links are neutral (0.5).
+    relevance = 0.5 if resource.llm_score is None else resource.llm_score
     score = (
         100
-        * (0.20 + 0.45 * popularity + 0.20 * corroboration + 0.15 * resource.curated)
+        * (
+            0.20
+            + 0.40 * popularity
+            + 0.20 * corroboration
+            + 0.15 * resource.curated
+            + 0.05 * relevance
+        )
         * (0.20 + 0.80 * freshness)
     )
     return dict(

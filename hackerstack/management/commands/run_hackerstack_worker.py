@@ -2,18 +2,21 @@
 
 import signal
 import threading
-from datetime import timedelta
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, close_old_connections
 from django.db.migrations.executor import MigrationExecutor
-from django.utils import timezone
-from hackerstack.models import CollectionCursor
+from hackerstack.daily import (
+    RETRY_DELAYS,
+    release_lock,
+    run_daily_job,
+    seconds_until_next_day,
+)
 
 
 class Command(BaseCommand):
-    help = "Seed once; daily historical backfill (120 requests) and recent refresh (12 requests)"
+    help = "Seed once, load the snapshot once, then run the resumable daily job (collect, fetch pages, review)"
 
     def add_arguments(self, parser):
         parser.add_argument("--once", action="store_true")
@@ -44,32 +47,26 @@ class Command(BaseCommand):
             self.stderr.write(
                 f"Snapshot not loaded ({exc}); continuing with daily collection."
             )
+        # A previous process may have died mid-run holding the lock; this worker is the
+        # normal sole runner, so start clean. Steps are resumable, so nothing is repeated.
+        release_lock()
         while not stop.is_set():
-            marker, _ = CollectionCursor.objects.get_or_create(key="worker:daily")
-            if marker.cycle:
-                seconds = (
-                    marker.updated_at + timedelta(days=1) - timezone.now()
-                ).total_seconds()
-                if seconds > 0:
-                    if options["once"] or stop.wait(seconds):
-                        break
-            # Persist before collecting: restarts cannot turn a daily budget into a loop.
-            marker.cycle += 1
-            marker.save()
-            for mode in ("history", "recent"):
-                if stop.is_set():
-                    break
-                try:
-                    if mode == "history":
-                        call_command(
-                            "backfill_hackerstack", initialize=True, max_requests=120
-                        )
-                    else:
-                        call_command("sync_hackerstack", mode=mode, max_requests=12)
-                except CommandError:
-                    self.stderr.write(
-                        f"{mode} collection failed; see CollectionRun in admin. No immediate retry."
-                    )
+            try:
+                result = run_daily_job(log=self.stdout.write)
+            except Exception as exc:  # the loop must survive anything, e.g. a DB blip
+                self.stderr.write(
+                    f"Daily job crashed ({type(exc).__name__}); will retry."
+                )
+                close_old_connections()
+                result = None
             close_old_connections()
-            if options["once"] or stop.wait(86400):
+            if options["once"]:
+                break
+            if result is None:
+                wait = RETRY_DELAYS[0]
+            elif result.busy:
+                wait = 300
+            else:
+                wait = result.retry_in or seconds_until_next_day()
+            if stop.wait(wait):
                 break

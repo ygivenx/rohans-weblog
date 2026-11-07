@@ -77,6 +77,8 @@ jobs:
       BRIEFINGS_FEED_MIRROR: ${{ vars.BRIEFINGS_FEED_MIRROR }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      JEV_API_KEY: ${{ secrets.JEV_API_KEY }}
       VPS_HOST: ${{ vars.VPS_HOST }}
       VPS_USER: ${{ vars.VPS_USER }}
       VPS_PORT: ${{ vars.VPS_PORT }}
@@ -145,6 +147,8 @@ jobs:
             GMAIL_USER=${{ env.GMAIL_USER }}
             GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}
             BRIEFINGS_FEED_MIRROR=${{ env.BRIEFINGS_FEED_MIRROR }}
+            ANTHROPIC_API_KEY=${{ env.ANTHROPIC_API_KEY }}
+            JEV_API_KEY=${{ env.JEV_API_KEY }}
             ENVEOF
 
             # Build and deploy

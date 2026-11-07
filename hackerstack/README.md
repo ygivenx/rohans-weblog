@@ -57,7 +57,7 @@ Lobsters currently disallows general crawlers, so no crawler is enabled. **No
 historical Lobsters archive has been acquired.** Comment extraction is currently
 explicit per thread; it is not a census of all historical comment links.
 
-## Ranking v1
+## Ranking v2
 
 All components are 0–1:
 
@@ -67,7 +67,8 @@ P = max over submissions: ln(1 + max(votes, 0)) /
 C = 1 - exp(-distinct_source_and_thread_pairs / 3)
 E = 1 for editorial seeds, otherwise 0
 F = 2 ** (-content_age_days / half_life_days)
-score = 100 * (0.20 + 0.45*P + 0.20*C + 0.15*E) * (0.20 + 0.80*F)
+R = Jev's P(on-topic) from the page title, heading and description; 0.5 when not reviewed
+score = 100 * (0.20 + 0.40*P + 0.20*C + 0.15*E + 0.05*R) * (0.20 + 0.80*F)
 ```
 
 Reference vote scales: HN 500, Lobsters 100. These are tuning parameters, not
@@ -83,27 +84,37 @@ verified content date, date basis, and appropriate half-life in Django admin.
 
 These choices are inspectable heuristics, not validated quality predictions.
 
-## Page review (no per-link LLM calls in production)
+## Page review (Jev; Claude Haiku 5.5 as fallback)
 
-Three offline steps improve descriptions and topics. None of them runs in the deployed
-worker, and none sends anything to an LLM except step 3, which runs locally.
+Three steps improve descriptions, topics and labels. None of them guesses from keywords.
 
-1. `fetch_pages --limit 5000` reads each URL's own `<title>`, first `<h1>` and
-   description (standard library only). It honours `robots.txt`, spaces requests per
-   host, refuses non-public IPs on every redirect hop, and reads at most 150 KB. It
-   resumes where it stopped; `--retry-failed` retries timeouts and 429/5xx.
-2. Fetched descriptions replace the placeholder text unless an editor changed it.
-3. `classify_resources` packs 40 fetched pages per call to the local `agy` CLI
-   (default model "Gemini 3.8 Flash (Low)") and stores `llm_relevant`, `llm_category`
-   and a short reason. `--second-opinion` re-checks the "not relevant" rows with a
-   lenient prompt so a link stays hidden only when both passes agree. Pages that could
-   not be fetched are never reviewed. Page text is untrusted: it is JSON-encoded,
-   control characters are stripped, the model is told to ignore instructions in it, and
-   the call runs sandboxed with no tools.
+1. `fetch_pages --limit 5000` reads each URL's own `<title>`, first `<h1>` and description
+   (standard library only). It honours `robots.txt`, spaces requests per host, refuses
+   non-public IPs on every redirect hop, and reads at most 150 KB. It resumes where it
+   stopped; `--retry-failed` retries timeouts and 429/5xx. A fetched description replaces
+   the placeholder text unless an editor changed it.
+2. `review_pages` sends one request per fetched page to Jev (TypeSafe AI, pinned model
+   `jev-1.14.0`) with three questions answered together: P(on-topic), best topic (12
+   options) and kind of resource (7 options). The key is read from `JEV_API_KEY` only.
+   Without it, `ANTHROPIC_API_KEY` selects the Claude Haiku 5.5 fallback; with neither the
+   step is skipped. `--include-reviewed` re-reviews pages another model reviewed (resumable),
+   `--dry-run` prints verdicts and agreement with earlier ones without saving, and
+   `--sample-seed N` shuffles the selection.
+3. Decisions come from thresholds (in `review.py`, tuned on a labelled sample): P < 0.30
+   hides the link (balanced); P >= 0.50 marks it on-topic; between the two it is "uncertain"
+   and stays visible with its keyword topic. The refined topic is used only when the link is
+   on-topic and topic confidence >= 0.50; the kind label changes only at confidence >= 0.60
+   and never for editor-curated links (the freshness half-life follows the new kind unless it
+   was tuned by hand). The raw probability is stored (`llm_score`) so thresholds can be
+   re-tuned without re-calling the model.
 
-On the site, a link judged relevant is listed under the reviewed topic (marked ✦ when it
-differs from the keyword topic); links judged not relevant are hidden by default and shown
-under "Show N filtered out". Ranking is unchanged.
+Page text is untrusted data: Jev only answers questions about it and never follows
+instructions in it. The text sent is public page titles, headings and descriptions. TypeSafe's
+docs state Jev is not trained on customer requests; log retention is not stated.
+
+On the site, a link judged on-topic is listed under the reviewed topic (marked ✦ when it
+differs from the keyword topic); links judged off-topic are hidden by default and shown under
+"Show filtered-out links". Jev's confidence adds a small boost to ranking (R above).
 
 ## Snapshot bootstrap
 
@@ -113,6 +124,34 @@ The worker's request budget cannot rebuild a reviewed index quickly, so
 rows only, fills still-empty review fields on existing rows, never overwrites editor
 changes, rolls back on a bad file, and re-ranks. Refresh it with
 `python manage.py export_snapshot` after more fetching or reviewing, then commit.
+
+## Daily job (resumable, retried on error)
+
+`run_hackerstack_worker` runs `hackerstack/daily.py` once a UTC day. Steps, in order, each with
+a per-day budget: `history` (backfill, 120 requests), `recent` (12), `pages` (`fetch_pages`,
+300 pages), `review` and `second_opinion` (`review_pages`, 300 pages each; the second-opinion step is
+only used by the Claude fallback, since Jev returns confidence scores).
+
+- **Resumable:** each command picks up where it stopped, so re-running never repeats work.
+- **Isolated:** a failing step is logged as a failed `CollectionRun` (`daily:<step>`) and the
+  steps after it still run.
+- **Retried, bounded:** up to 3 attempts per step per day, waiting 10 min, then 30 min; a retry
+  gets only the budget left after earlier attempts, so retries cannot overspend. After the third
+  failure the step waits for tomorrow.
+- **Persist-before-run:** the attempt is counted before the command starts, so a crash loop
+  cannot become an unbounded budget.
+- **Exclusive:** a DB lock stops two runs overlapping; a lock older than 3 hours is treated as
+  dead, and the worker clears it on start.
+- **Review is optional:** with `JEV_API_KEY` (preferred) or `ANTHROPIC_API_KEY` set the review steps
+  run; with neither they are skipped (not failed). Add the key as a GitHub secret of that name; the
+  deploy writes it into the indexer's environment. Only environment variables are read, and keys
+  are never logged.
+
+Operate it by hand: `python manage.py run_daily_job --status` shows each step's state and
+remaining budget; `run_daily_job` runs whatever is not done today; `--step pages --force`
+re-runs one step; `docker compose exec hackerstack-indexer python manage.py run_daily_job`
+runs it in production. State is kept in `CollectionCursor` rows (`daily:<date>:<step>`), pruned
+after 14 days.
 
 ## Resource limits and production
 

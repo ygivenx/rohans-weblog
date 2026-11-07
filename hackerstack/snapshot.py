@@ -12,7 +12,10 @@ from datetime import date, datetime
 from django.db import transaction
 from django.utils.dateparse import parse_date, parse_datetime
 
+from .ingestion import PLACEHOLDER_DESCRIPTION
+from .jev import MODEL_PREFIX
 from .models import BackfillWindow, Evidence, Resource
+from .ranking import HALF_LIVES
 
 RESOURCE_FIELDS = [
     "url",
@@ -38,6 +41,18 @@ RESOURCE_FIELDS = [
     "llm_reason",
     "llm_model",
     "llm_classified_at",
+    "llm_score",
+    "llm_topic_confidence",
+]
+# A Jev verdict replaces none/older-model verdicts on existing rows (Jev is the primary reviewer).
+LLM_FIELDS = [
+    "llm_relevant",
+    "llm_category",
+    "llm_reason",
+    "llm_model",
+    "llm_classified_at",
+    "llm_score",
+    "llm_topic_confidence",
 ]
 FILL_FIELDS = [
     "page_title",
@@ -136,6 +151,11 @@ def _flush_resources(chunk, stats):
         if obj is None:
             continue
         changed = []
+        # Decide before the fill-empty pass below, which would copy llm_model onto an unreviewed
+        # row and make this look like "already Jev-reviewed".
+        take_jev = (c.get("llm_model") or "").startswith(
+            MODEL_PREFIX
+        ) and not obj.llm_model.startswith(MODEL_PREFIX)
         for field in FILL_FIELDS:
             empty = (
                 getattr(obj, field) is None
@@ -145,6 +165,26 @@ def _flush_resources(chunk, stats):
             if empty and c[field] not in (None, ""):
                 setattr(obj, field, c[field])
                 changed.append(field)
+        if take_jev:
+            for field in LLM_FIELDS:
+                setattr(obj, field, c[field])
+            changed.extend(f for f in LLM_FIELDS if f not in changed)
+            if c["kind"] != obj.kind and not obj.curated:
+                old_kind = obj.kind
+                obj.kind = c["kind"]
+                changed.append("kind")
+                if obj.half_life_days == HALF_LIVES.get(old_kind):  # not hand-tuned
+                    obj.half_life_days = c["half_life_days"]
+                    changed.append("half_life_days")
+        # A fetched page description replaces the placeholder, but never an editor's text.
+        incoming = c["description"]
+        if (
+            obj.description == PLACEHOLDER_DESCRIPTION
+            and incoming
+            and incoming != PLACEHOLDER_DESCRIPTION
+        ):
+            obj.description = incoming
+            changed.append("description")
         if changed:
             obj.save(update_fields=changed)  # save() also refreshes search_text
             stats["resources_filled"] += 1

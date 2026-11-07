@@ -48,9 +48,10 @@
   <section id="method" class="hs-method" aria-labelledby="method-title">
     <h3 id="method-title">Useful now. Worth keeping.</h3>
     <p>A transparent starting formula, not a claim of objective quality. Search requires matching words; an exact title phrase gets priority in the recommended order.</p>
-    <p class="hs-formula">Score = 100 × (0.20 + 0.45P + 0.20C + 0.15E) × (0.20 + 0.80F)</p>
+    <p class="hs-formula">Score = 100 × (0.20 + 0.40P + 0.20C + 0.15E + 0.05R) × (0.20 + 0.80F)</p>
     <dl><dt>P · Popularity</dt><dd>The strongest submission's ln(1 + votes) / [ln(1 + votes) + ln(1 + scale)]. Reference scales: 500 HN points or 100 Lobsters points; each earns 0.5. Further votes have diminishing returns. These are tuning choices, not measured percentiles. Comment mentions do not inherit their parent story's votes.</dd>
     <dt>C · Corroboration</dt><dd>1 − exp(−distinct discussions / 3). Repeated imports and multiple links from one thread never add extra discussions. A discussion is evidence of attention, not necessarily endorsement.</dd>
+    <dt>R · Relevance</dt><dd>Jev's probability that the link is about AI or software engineering, from its title, heading and description. A small boost: it can move a link by at most a couple of points out of 100. Links we could not review count as 0.5.</dd>
     <dt>E · Editorial selection</dt><dd>1 for a curated directory entry; 0 for an automatically discovered link.</dd>
     <dt>F · Freshness</dt><dd>2 raised to −age / half-life. News: 30 days; tools and docs: 180; articles and websites: 365; papers: 730; courses: 1,825. Editors can adjust the half-life. Unknown content dates start at 0.5, with the earliest discussion providing a conservative age penalty. Fetching a page never makes it new.</dd></dl>
     <p class="hs-coverage"><strong>Page review:</strong> for links whose page we could fetch, an AI model (Gemini 3.8 Flash) read the page title, heading and description to hide off-topic links and refine the topic (marked ✦). It can be wrong; hidden links are one click away (“Show filtered-out links”). Pages that blocked us are not reviewed and keep their keyword topic.</p>

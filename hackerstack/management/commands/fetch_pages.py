@@ -56,8 +56,12 @@ class Command(BaseCommand):
             self.stdout.write("Nothing to fetch")
             return
         stop = threading.Event()
+        previous = {}
         for sig in (signal.SIGINT, signal.SIGTERM):
-            signal.signal(sig, lambda *_: stop.set())
+            try:
+                previous[sig] = signal.signal(sig, lambda *_: stop.set())
+            except ValueError:  # not the main thread: leave signal handling alone
+                break
         fetcher = Fetcher(timeout=options["timeout"])
         run = CollectionRun.objects.create(source="page-fetch")
         counts = Counter()
@@ -104,6 +108,10 @@ class Command(BaseCommand):
                         )
                         self.stdout.flush()
         finally:
+            for sig, handler in previous.items():
+                signal.signal(
+                    sig, handler
+                )  # never leave the caller (the worker) unable to stop
             fetched = sum(v for k, v in counts.items() if k != "skipped")
             run.requests = fetched
             run.records = counts["ok"]

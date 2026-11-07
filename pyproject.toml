@@ -15,6 +15,7 @@ dependencies = [
     "python-frontmatter>=1.0",
     "pygments>=2.0",
     "martor>=1.6.0",
+    "anthropic>=1.0",
 ]
 
 [project.optional-dependencies]

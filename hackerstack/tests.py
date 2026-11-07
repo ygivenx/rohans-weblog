@@ -933,3 +933,931 @@ class ConsumablePageTests(TestCase):
         body = self.get().content.decode()
         self.assertIn("HN · Mar 2024", body)
         self.assertNotIn("Content date", body)
+
+
+class SnapshotDescriptionTests(TestCase):
+    def test_existing_placeholder_description_is_replaced_but_edits_are_kept(self):
+        from .ingestion import PLACEHOLDER_DESCRIPTION
+        from .snapshot import export_snapshot, load_snapshot
+
+        fetched = Resource.objects.create(
+            url="https://p1.example/",
+            title="P1",
+            category="agents",
+            description="Real page description",
+            fetch_status="ok",
+            page_title="P1 page",
+        )
+        edited = Resource.objects.create(
+            url="https://p2.example/",
+            title="P2",
+            category="agents",
+            description="Real page description too",
+            fetch_status="ok",
+            page_title="P2 page",
+        )
+        untouched = Resource.objects.create(
+            url="https://p3.example/",
+            title="P3",
+            category="agents",
+            description=PLACEHOLDER_DESCRIPTION,
+        )
+        path = Path(tempfile.mkdtemp()) / "d.jsonl.gz"
+        export_snapshot(path)
+        # Production's copies: still placeholders, except one an editor rewrote.
+        Resource.objects.filter(pk=fetched.pk).update(
+            description=PLACEHOLDER_DESCRIPTION, fetch_status="", page_title=""
+        )
+        Resource.objects.filter(pk=edited.pk).update(
+            description="Editor rewrote this", fetch_status="", page_title=""
+        )
+        stats = load_snapshot(path)
+        for r in (fetched, edited, untouched):
+            r.refresh_from_db()
+        self.assertEqual(fetched.description, "Real page description")
+        self.assertEqual(fetched.page_title, "P1 page")
+        self.assertEqual(edited.description, "Editor rewrote this")
+        self.assertEqual(edited.page_title, "P2 page")  # review fields still fill
+        self.assertEqual(untouched.description, PLACEHOLDER_DESCRIPTION)
+        self.assertEqual(stats["resources_filled"], 2)
+        self.assertIn(
+            "Real page description", Resource.objects.get(pk=fetched.pk).search_text
+        )
+
+
+class DailyJobTests(TestCase):
+    def run_job(self, fail=None, **kw):
+        """Run the job with commands faked; `fail` maps command name -> exception."""
+        from .daily import run_daily_job
+
+        calls = []
+
+        def fake(command, **kwargs):
+            calls.append((command, kwargs))
+            exc = (fail or {}).get(
+                command + ("2" if kwargs.get("second_opinion") else "")
+            )
+            if exc:
+                raise exc
+
+        with patch("hackerstack.daily.call_command", fake):
+            result = run_daily_job(**kw)
+        return result, calls
+
+    def test_runs_every_step_in_order_with_its_budget(self):
+        result, calls = self.run_job()
+        self.assertEqual(
+            calls,
+            [
+                ("backfill_hackerstack", dict(initialize=True, max_requests=120)),
+                ("sync_hackerstack", dict(mode="recent", max_requests=12)),
+                ("fetch_pages", dict(limit=300, workers=8)),
+                ("review_pages", dict(limit=300)),
+                ("review_pages", dict(limit=300, second_opinion=True)),
+            ],
+        )
+        self.assertEqual(len(result.ran), 5)
+        self.assertTrue(result.finished)
+
+    def test_second_run_the_same_day_does_nothing(self):
+        self.run_job()
+        result, calls = self.run_job()
+        self.assertEqual(calls, [])
+        self.assertTrue(result.finished)
+
+    def test_failure_is_isolated_then_retried_with_only_the_remaining_budget(self):
+        result, calls = self.run_job(
+            fail={"backfill_hackerstack": RuntimeError("boom")}
+        )
+        self.assertEqual(
+            [c for c, _ in calls][1:],
+            ["sync_hackerstack", "fetch_pages", "review_pages", "review_pages"],
+        )
+        self.assertEqual(result.failed, ["history"])
+        self.assertEqual(result.retry_in, 600)
+        self.assertFalse(result.finished)
+        failure = CollectionRun.objects.get(source="daily:history")
+        self.assertEqual(failure.status, "failed")
+        self.assertIn("RuntimeError", failure.detail)
+        # The failed attempt did spend 50 requests before dying (recorded by the command).
+        CollectionRun.objects.create(source="hn-backfill", requests=50)
+        result, calls = self.run_job()
+        self.assertEqual(
+            calls, [("backfill_hackerstack", dict(initialize=True, max_requests=70))]
+        )
+        self.assertTrue(result.finished)
+
+    def test_gives_up_after_three_attempts_with_growing_waits(self):
+        fail = {"backfill_hackerstack": RuntimeError("down")}
+        waits = [self.run_job(fail=fail)[0].retry_in for _ in range(3)]
+        self.assertEqual(waits, [600, 1800, None])
+        result, calls = self.run_job(fail=fail)
+        self.assertEqual(calls, [])  # not tried a fourth time today
+        self.assertEqual(result.failed, ["history"])
+        self.assertIsNone(result.retry_in)
+
+    def test_budget_already_spent_today_is_marked_done_without_running(self):
+        CollectionRun.objects.create(source="page-fetch", requests=300)
+        result, calls = self.run_job()
+        self.assertNotIn("fetch_pages", [c for c, _ in calls])
+        self.assertTrue(result.finished)
+
+    def test_missing_api_key_is_a_skip_not_a_failure(self):
+        from .review import ReviewUnavailable
+
+        result, calls = self.run_job(
+            fail={
+                "review_pages": ReviewUnavailable("no key"),
+                "review_pages2": ReviewUnavailable("no key"),
+            }
+        )
+        self.assertEqual(result.skipped, ["review", "second_opinion"])
+        self.assertEqual(result.failed, [])
+        self.assertTrue(result.finished)
+        self.assertFalse(
+            CollectionRun.objects.filter(source__startswith="daily:").exists()
+        )
+
+    def test_lock_blocks_overlap_and_a_stale_lock_is_taken_over(self):
+        from datetime import timedelta
+
+        from .daily import LOCK_KEY, acquire_lock, release_lock
+
+        self.assertTrue(acquire_lock())
+        self.assertFalse(acquire_lock())
+        result, calls = self.run_job()
+        self.assertTrue(result.busy)
+        self.assertEqual(calls, [])
+        CollectionCursor.objects.filter(key=LOCK_KEY).update(
+            updated_at=timezone.now() - timedelta(hours=4)
+        )
+        self.assertTrue(acquire_lock())  # stale: previous holder is presumed dead
+        release_lock()
+        self.assertTrue(acquire_lock())
+
+    def test_lock_is_released_even_when_a_step_fails(self):
+        from .daily import acquire_lock, release_lock
+
+        self.run_job(fail={"fetch_pages": RuntimeError("x")})
+        self.assertTrue(acquire_lock())
+        release_lock()
+
+    def test_legacy_worker_marker_prevents_repeating_collection_that_day(self):
+        CollectionCursor.objects.create(key="worker:daily", cycle=1)
+        _, calls = self.run_job()
+        self.assertEqual(
+            [c for c, _ in calls], ["fetch_pages", "review_pages", "review_pages"]
+        )
+
+    def test_only_and_force_rerun_a_single_step(self):
+        self.run_job()
+        _, calls = self.run_job(only="pages", force=True)
+        self.assertEqual([c for c, _ in calls], ["fetch_pages"])
+        with self.assertRaises(ValueError):
+            self.run_job(only="nope")
+
+    def test_old_state_rows_are_cleaned_up_and_waits_are_sane(self):
+        from .daily import seconds_until_next_day
+
+        CollectionCursor.objects.create(key="daily:2020-01-01:history", cycle=1)
+        self.run_job()
+        self.assertFalse(
+            CollectionCursor.objects.filter(key="daily:2020-01-01:history").exists()
+        )
+        self.assertTrue(60 <= seconds_until_next_day() <= 86400 + 300)
+
+    def test_status_command_lists_steps(self):
+        from io import StringIO
+
+        self.run_job()
+        out = StringIO()
+        call_command("run_daily_job", status=True, stdout=out)
+        text = out.getvalue()
+        for name in ("history", "recent", "pages", "review", "second_opinion"):
+            self.assertIn(name, text)
+        self.assertIn("done=True", text)
+
+
+class WorkerLoopTests(TestCase):
+    def run_worker(self, **job):
+        from types import SimpleNamespace as NS
+
+        mod = "hackerstack.management.commands.run_hackerstack_worker"
+        # The readiness loop closes connections, which is invalid inside a test transaction
+        # (PostgreSQL); production has no wrapping transaction. Fake the plan: nothing pending.
+        ready = NS(
+            loader=NS(graph=NS(leaf_nodes=lambda: [])),
+            migration_plan=lambda nodes: [],
+        )
+        with (
+            patch(f"{mod}.call_command"),
+            patch(f"{mod}.release_lock") as release,
+            patch(f"{mod}.close_old_connections"),
+            patch(f"{mod}.MigrationExecutor", return_value=ready),
+            patch(f"{mod}.run_daily_job", **job) as run_job,
+        ):
+            call_command("run_hackerstack_worker", once=True)
+        return run_job, release
+
+    def test_once_runs_the_job_and_survives_a_crash(self):
+        from .daily import JobResult
+
+        run_job, release = self.run_worker(return_value=JobResult())
+        self.assertEqual((run_job.call_count, release.call_count), (1, 1))
+        self.run_worker(side_effect=RuntimeError("db blip"))  # must not raise
+
+    def test_fetch_pages_restores_the_callers_signal_handlers(self):
+        import signal
+
+        before = signal.getsignal(signal.SIGTERM)
+        Resource.objects.create(
+            url="https://sig.example/", title="S", category="agents", score=1
+        )
+        with patch(
+            "hackerstack.pages.Fetcher.fetch",
+            lambda self, url: dict(status="ok", title="t", h1="", description=""),
+        ):
+            call_command("fetch_pages", limit=1, workers=1)
+        self.assertIs(signal.getsignal(signal.SIGTERM), before)
+
+
+class ReviewPagesTests(TestCase):
+    class Block:
+        def __init__(self, type, text=""):
+            self.type, self.text = type, text
+
+    def reply(self, results, stop_reason="end_turn"):
+        import json as _json
+        from types import SimpleNamespace as NS
+
+        return NS(
+            stop_reason=stop_reason,
+            content=[
+                self.Block("thinking"),
+                self.Block("text", _json.dumps({"results": results})),
+            ],
+            usage=NS(input_tokens=100, output_tokens=20),
+        )
+
+    def fake_client(self, replies):
+        from types import SimpleNamespace as NS
+
+        calls = []
+
+        def create(**kwargs):
+            calls.append(kwargs)
+            r = replies.pop(0)
+            if isinstance(r, BaseException):
+                raise r
+            return r
+
+        return NS(messages=NS(create=create)), calls
+
+    def run_cmd(self, client, **kw):
+        with (
+            patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}),
+            patch(
+                "hackerstack.management.commands.review_pages.make_client",
+                return_value=client,
+            ),
+        ):
+            call_command("review_pages", **kw)
+
+    def make(self, n, **kw):
+        return Resource.objects.create(
+            url=f"https://rv{n}.example/",
+            title=f"R{n}",
+            category="engineering",
+            fetch_status="ok",
+            page_title=f"Page {n}",
+            score=100 - n,
+            **kw,
+        )
+
+    def test_without_a_key_it_reports_unavailable(self):
+        from .review import ReviewUnavailable
+
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaises(ReviewUnavailable):
+                call_command("review_pages")
+
+    def test_saves_verdicts_and_sends_the_documented_parameters(self):
+        a, b = self.make(1), self.make(2)
+        client, calls = self.fake_client(
+            [
+                self.reply(
+                    [
+                        {
+                            "id": a.id,
+                            "relevant": True,
+                            "best_category": "agents",
+                            "reason": "agent tool",
+                        },
+                        {
+                            "id": b.id,
+                            "relevant": False,
+                            "best_category": "safety",
+                            "reason": "news",
+                        },
+                    ]
+                )
+            ]
+        )
+        self.run_cmd(client, limit=10)
+        a.refresh_from_db()
+        b.refresh_from_db()
+        self.assertEqual(
+            (a.llm_relevant, a.llm_category, a.llm_model),
+            (True, "agents", "claude-haiku-5-5"),
+        )
+        self.assertFalse(b.llm_relevant)
+        kw = calls[0]
+        self.assertEqual(kw["model"], "claude-haiku-5-5")
+        self.assertEqual(kw["output_config"]["effort"], "low")
+        self.assertEqual(kw["output_config"]["format"]["type"], "json_schema")
+        for banned in ("temperature", "top_p", "top_k", "thinking"):
+            self.assertNotIn(banned, kw)
+        self.assertIn("untrusted data", kw["messages"][0]["content"])
+        run = CollectionRun.objects.get(source="review")
+        self.assertEqual((run.requests, run.records, run.status), (2, 2, "complete"))
+        # Reviewed rows are not sent again.
+        self.run_cmd(self.fake_client([])[0], limit=10)
+
+    def test_second_opinion_is_lenient_and_tagged(self):
+        a = self.make(
+            1,
+            llm_relevant=False,
+            llm_category="engineering",
+            llm_model="x",
+            llm_classified_at=timezone.now(),
+        )
+        client, calls = self.fake_client(
+            [
+                self.reply(
+                    [
+                        {
+                            "id": a.id,
+                            "relevant": True,
+                            "best_category": "engineering",
+                            "reason": "course",
+                        }
+                    ]
+                )
+            ]
+        )
+        self.run_cmd(client, limit=10, second_opinion=True)
+        a.refresh_from_db()
+        self.assertTrue(a.llm_relevant)
+        self.assertTrue(a.llm_model.endswith(" +2nd"))
+        self.assertIn("lenient", calls[0]["messages"][0]["content"])
+        self.assertEqual(CollectionRun.objects.get().source, "review-2nd")
+
+    def test_refusal_and_bad_replies_fail_the_batch_not_the_data(self):
+        from django.core.management.base import CommandError
+
+        for i in range(4):
+            self.make(i)
+        client, _ = self.fake_client(
+            [
+                self.reply([], stop_reason="refusal"),
+                self.reply([], stop_reason="max_tokens"),
+                ValueError("bad"),
+            ]
+        )
+        with self.assertRaises(CommandError):
+            self.run_cmd(client, limit=10, batch_size=1)
+        self.assertEqual(
+            Resource.objects.filter(llm_classified_at__isnull=False).count(), 0
+        )
+        self.assertEqual(CollectionRun.objects.get().status, "failed")
+
+    def test_rejected_key_aborts_at_once(self):
+        import anthropic
+        from django.core.management.base import CommandError
+
+        self.make(1)
+        self.make(2)
+        auth = anthropic.AuthenticationError.__new__(anthropic.AuthenticationError)
+        client, calls = self.fake_client([auth])
+        with self.assertRaises(CommandError):
+            self.run_cmd(client, limit=10, batch_size=1)
+        self.assertEqual(len(calls), 1)  # did not keep trying with a bad key
+
+
+def jev_body(
+    relevance=0.9,
+    topic="agents",
+    topic_conf=0.8,
+    kind="tool",
+    kind_conf=0.9,
+    tokens=1000,
+):
+    return {
+        "model": "jev-1.14.0",
+        "answers": {
+            "relevant": {"type": "noul", "noul": relevance},
+            "topic": {
+                "type": "choice",
+                "choice": topic,
+                "confidence": topic_conf,
+                "probabilities": {},
+            },
+            "kind": {
+                "type": "choice",
+                "choice": kind,
+                "confidence": kind_conf,
+                "probabilities": {},
+            },
+        },
+        "usage": {"input_tokens": tokens, "output_tokens": 0},
+    }
+
+
+class JevClientTests(TestCase):
+    def test_parse_answers_reads_probabilities_and_rejects_bad_shapes(self):
+        from . import jev
+
+        v = jev.parse_answers(jev_body(0.12, "safety", 0.7, "news", 0.95, 420))
+        self.assertEqual(
+            (v.relevance, v.topic, v.kind, v.input_tokens),
+            (0.12, "safety", "news", 420),
+        )
+        for bad in (
+            {},
+            {"answers": {}},
+            jev_body(relevance=1.5),
+            jev_body(topic="not-a-topic"),
+            jev_body(kind="video"),
+            jev_body(topic_conf=-0.1),
+        ):
+            with self.assertRaises(jev.JevError):
+                jev.parse_answers(bad)
+
+    def test_request_has_the_documented_shape(self):
+        from . import jev
+
+        r = Resource(
+            url="https://x.example/a",
+            title="T",
+            page_title="P",
+            page_h1="H",
+            page_description="D",
+        )
+        sent = {}
+
+        def fake_post(payload, key, **kw):
+            sent.update(payload=payload, key=key)
+            return jev_body()
+
+        with patch("hackerstack.jev.post", fake_post):
+            jev.review(r, "k")
+        payload = sent["payload"]
+        self.assertEqual(payload["model"], "jev-1.14.0")  # pinned, not jev-latest
+        self.assertEqual(payload["state"]["site"], "x.example")
+        self.assertEqual(set(payload["questions"]), {"relevant", "topic", "kind"})
+        self.assertEqual(payload["questions"]["relevant"]["type"], "noul")
+        self.assertEqual(len(payload["questions"]["topic"]["criteria"]), 12)
+        self.assertEqual(len(payload["questions"]["kind"]["criteria"]), 7)
+
+    def fake_urlopen(self, outcomes):
+        from io import BytesIO
+        from urllib.error import HTTPError
+
+        calls = []
+
+        class Resp:
+            def __init__(self, body):
+                self.body = body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self, n=-1):
+                return self.body
+
+        def opener(request, timeout=0):
+            calls.append(request)
+            o = outcomes.pop(0)
+            if isinstance(o, int):
+                raise HTTPError(
+                    request.full_url, o, "err", {"Retry-After": "0"}, BytesIO(b"{}")
+                )
+            if isinstance(o, BaseException):
+                raise o
+            return Resp(json.dumps(o).encode())
+
+        return opener, calls
+
+    def test_retries_429_and_529_then_succeeds_and_sends_bearer_key_only_in_header(
+        self,
+    ):
+        from . import jev
+
+        opener, calls = self.fake_urlopen([429, 529, jev_body()])
+        with patch("hackerstack.jev.urlopen", opener):
+            body = jev.post({"x": 1}, "SECRET-KEY", sleep=lambda s: None)
+        self.assertEqual(body["model"], "jev-1.14.0")
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls[0].get_header("Authorization"), "Bearer SECRET-KEY")
+        self.assertNotIn(b"SECRET-KEY", calls[0].data)
+
+    def test_auth_failure_and_bad_requests_are_not_retried_and_never_leak_the_key(self):
+        from . import jev
+
+        opener, calls = self.fake_urlopen([401])
+        with patch("hackerstack.jev.urlopen", opener):
+            with self.assertRaises(jev.JevAuthError) as ctx:
+                jev.post({}, "SECRET-KEY", sleep=lambda s: None)
+        self.assertNotIn("SECRET-KEY", str(ctx.exception))
+        self.assertEqual(len(calls), 1)
+        opener, calls = self.fake_urlopen([422])
+        with patch("hackerstack.jev.urlopen", opener):
+            with self.assertRaises(jev.JevError):
+                jev.post({}, "SECRET-KEY", sleep=lambda s: None)
+        self.assertEqual(len(calls), 1)
+
+    def test_gives_up_after_repeated_overload_and_network_errors(self):
+        from urllib.error import URLError
+
+        from . import jev
+
+        opener, calls = self.fake_urlopen([529] * jev.MAX_ATTEMPTS)
+        with patch("hackerstack.jev.urlopen", opener):
+            with self.assertRaises(jev.JevError):
+                jev.post({}, "k", sleep=lambda s: None)
+        self.assertEqual(len(calls), jev.MAX_ATTEMPTS)
+        opener, calls = self.fake_urlopen([URLError("down")] * jev.MAX_ATTEMPTS)
+        with patch("hackerstack.jev.urlopen", opener):
+            with self.assertRaises(jev.JevError):
+                jev.post({}, "k", sleep=lambda s: None)
+
+
+class JevDecisionTests(TestCase):
+    def verdict(self, **kw):
+        from . import jev
+
+        return jev.parse_answers(jev_body(**kw))
+
+    def test_thresholds_hide_only_when_confident_and_keep_uncertain_visible(self):
+        from .review import decide
+
+        self.assertEqual(decide(self.verdict(relevance=0.05))[0], False)
+        self.assertEqual(decide(self.verdict(relevance=0.29))[0], False)
+        self.assertIsNone(
+            decide(self.verdict(relevance=0.30))[0]
+        )  # uncertain: not hidden
+        self.assertIsNone(decide(self.verdict(relevance=0.49))[0])
+        self.assertEqual(decide(self.verdict(relevance=0.50))[0], True)
+
+    def test_topic_and_kind_need_confidence(self):
+        from .review import decide
+
+        relevant, topic, kind = decide(
+            self.verdict(relevance=0.9, topic_conf=0.49, kind_conf=0.59)
+        )
+        self.assertEqual(
+            (relevant, topic, kind), (True, "", "")
+        )  # keep keyword topic and kind
+        self.assertEqual(
+            decide(self.verdict(relevance=0.9, topic_conf=0.5, kind_conf=0.6))[1:],
+            ("agents", "tool"),
+        )
+        # An off-topic or uncertain link never gets a refined topic.
+        self.assertEqual(decide(self.verdict(relevance=0.1, topic_conf=1.0))[1], "")
+        self.assertEqual(decide(self.verdict(relevance=0.4, topic_conf=1.0))[1], "")
+
+    def make(self, **kw):
+        return Resource.objects.create(
+            url="https://dk.example/",
+            title="T",
+            category="engineering",
+            fetch_status="ok",
+            **kw,
+        )
+
+    def test_apply_updates_kind_and_follows_half_life_unless_hand_tuned_or_curated(
+        self,
+    ):
+        from .ranking import HALF_LIVES
+        from .review import apply_jev_verdict
+
+        news = self.verdict(relevance=0.9, kind="news", kind_conf=0.95)
+        auto = self.make(kind="article", half_life_days=HALF_LIVES["article"])
+        apply_jev_verdict(auto, news)
+        auto.refresh_from_db()
+        self.assertEqual((auto.kind, auto.half_life_days), ("news", HALF_LIVES["news"]))
+        self.assertEqual(
+            (auto.llm_model, auto.llm_relevant, auto.llm_score),
+            ("jev-1.14.0", True, 0.9),
+        )
+        tuned = Resource.objects.create(
+            url="https://t.example/",
+            title="T",
+            category="engineering",
+            kind="article",
+            half_life_days=999,
+        )
+        apply_jev_verdict(tuned, news)
+        tuned.refresh_from_db()
+        self.assertEqual(
+            (tuned.kind, tuned.half_life_days), ("news", 999)
+        )  # editor's half-life kept
+        curated = Resource.objects.create(
+            url="https://c.example/",
+            title="T",
+            category="engineering",
+            kind="tool",
+            curated=True,
+        )
+        apply_jev_verdict(curated, news)
+        curated.refresh_from_db()
+        self.assertEqual(curated.kind, "tool")  # curated entries keep their kind
+
+    def test_uncertain_verdict_is_stored_but_not_hidden_and_keeps_keyword_topic(self):
+        from .review import apply_jev_verdict
+
+        r = self.make()
+        apply_jev_verdict(
+            r, self.verdict(relevance=0.4, topic="agents", topic_conf=0.99)
+        )
+        r.refresh_from_db()
+        self.assertIsNone(r.llm_relevant)
+        self.assertEqual((r.topic, r.llm_category), ("engineering", ""))
+        self.assertIsNotNone(r.llm_classified_at)
+
+
+class JevReviewCommandTests(TestCase):
+    def make(self, n, **kw):
+        return Resource.objects.create(
+            url=f"https://jr{n}.example/",
+            title=f"J{n}",
+            category="engineering",
+            fetch_status="ok",
+            page_title=f"Page {n}",
+            score=100 - n,
+            **kw,
+        )
+
+    def run_cmd(self, replies, **kw):
+        from . import jev
+
+        calls = []
+
+        def fake_review(resource, key, **_):
+            calls.append((resource.pk, key))
+            r = replies[resource.pk]
+            if isinstance(r, BaseException):
+                raise r
+            return jev.parse_answers(r)
+
+        with (
+            patch.dict("os.environ", {"JEV_API_KEY": "jk", "ANTHROPIC_API_KEY": "ak"}),
+            patch("hackerstack.jev.review", fake_review),
+        ):
+            call_command("review_pages", **kw)
+        return calls
+
+    def test_prefers_jev_saves_verdicts_and_records_a_run(self):
+        a, b = self.make(1), self.make(2)
+        calls = self.run_cmd(
+            {a.pk: jev_body(0.9, "agents", 0.9, "tool", 0.9), b.pk: jev_body(0.05)},
+            limit=10,
+            workers=2,
+        )
+        self.assertEqual(sorted(c[0] for c in calls), sorted([a.pk, b.pk]))
+        a.refresh_from_db()
+        b.refresh_from_db()
+        self.assertEqual((a.llm_relevant, a.topic, a.kind), (True, "agents", "tool"))
+        self.assertEqual((b.llm_relevant, b.llm_model), (False, "jev-1.14.0"))
+        run = CollectionRun.objects.get(source="review")
+        self.assertEqual((run.requests, run.records, run.status), (2, 2, "complete"))
+        self.assertEqual(
+            self.run_cmd({}, limit=10), []
+        )  # reviewed rows are not sent again
+
+    def test_include_reviewed_re_reviews_other_models_but_not_jev_rows(self):
+        gem = self.make(
+            1,
+            llm_relevant=False,
+            llm_category="safety",
+            llm_model="Gemini 3.8 Flash (Low)",
+            llm_classified_at=timezone.now(),
+        )
+        done = self.make(
+            2,
+            llm_relevant=True,
+            llm_model="jev-1.14.0",
+            llm_classified_at=timezone.now(),
+        )
+        calls = self.run_cmd({gem.pk: jev_body(0.9)}, limit=10, include_reviewed=True)
+        self.assertEqual([c[0] for c in calls], [gem.pk])
+        gem.refresh_from_db()
+        done.refresh_from_db()
+        self.assertEqual((gem.llm_model, gem.llm_relevant), ("jev-1.14.0", True))
+        self.assertEqual(done.llm_model, "jev-1.14.0")
+
+    def test_dry_run_saves_nothing(self):
+        a = self.make(1)
+        self.run_cmd({a.pk: jev_body(0.05)}, limit=10, dry_run=True)
+        a.refresh_from_db()
+        self.assertIsNone(a.llm_classified_at)
+        self.assertFalse(CollectionRun.objects.exists())
+
+    def test_one_bad_page_does_not_stop_the_rest(self):
+        from . import jev
+
+        a, b = self.make(1), self.make(2)
+        self.run_cmd(
+            {a.pk: jev.JevError("bad"), b.pk: jev_body(0.9)}, limit=10, workers=1
+        )
+        a.refresh_from_db()
+        b.refresh_from_db()
+        self.assertIsNone(a.llm_classified_at)
+        self.assertIsNotNone(b.llm_classified_at)
+        self.assertEqual(CollectionRun.objects.get().status, "partial")
+
+    def test_rejected_key_aborts_the_run(self):
+        from django.core.management.base import CommandError
+
+        from . import jev
+
+        pages = [self.make(i) for i in range(5)]
+        with self.assertRaises(CommandError):
+            self.run_cmd(
+                {p.pk: jev.JevAuthError("API key rejected (HTTP 401)") for p in pages},
+                limit=10,
+                workers=1,
+            )
+        self.assertEqual(CollectionRun.objects.get().status, "failed")
+        self.assertEqual(
+            Resource.objects.filter(llm_classified_at__isnull=False).count(), 0
+        )
+
+    def test_provider_precedence_and_unavailable(self):
+        from .review import ReviewUnavailable, resolve_provider
+
+        with patch.dict("os.environ", {"JEV_API_KEY": "j", "ANTHROPIC_API_KEY": "a"}):
+            self.assertEqual(resolve_provider("auto"), "jev")
+            self.assertEqual(resolve_provider("anthropic"), "anthropic")
+        with patch.dict("os.environ", {"JEV_API_KEY": "", "ANTHROPIC_API_KEY": "a"}):
+            self.assertEqual(resolve_provider("auto"), "anthropic")
+            with self.assertRaises(ReviewUnavailable):
+                resolve_provider("jev")
+        with patch.dict("os.environ", {"JEV_API_KEY": "", "ANTHROPIC_API_KEY": ""}):
+            with self.assertRaises(ReviewUnavailable):
+                resolve_provider("auto")
+
+    def test_second_opinion_is_a_noop_with_jev(self):
+        a = self.make(
+            1, llm_relevant=False, llm_model="x", llm_classified_at=timezone.now()
+        )
+        calls = self.run_cmd({a.pk: jev_body(0.9)}, limit=10, second_opinion=True)
+        self.assertEqual(calls, [])
+
+
+class RankingRelevanceTests(TestCase):
+    def make(self, n, score):
+        return Resource(
+            url=f"https://rk{n}.example/", title="R", category="agents", llm_score=score
+        )
+
+    def test_relevance_is_a_small_bounded_boost_and_unreviewed_is_neutral(self):
+        hi = components(self.make(1, 0.95), [])["score"]
+        mid = components(self.make(2, None), [])["score"]
+        lo = components(self.make(3, 0.05), [])["score"]
+        self.assertGreater(hi, mid)
+        self.assertGreater(mid, lo)
+        self.assertLess(hi - lo, 3.0)  # at most ~2 points of 100 even at the extremes
+
+    def test_score_never_exceeds_100(self):
+        from datetime import datetime, timezone as tz
+
+        r = Resource(
+            url="https://max.example/",
+            title="M",
+            category="agents",
+            curated=True,
+            llm_score=1.0,
+            content_date=timezone.localdate(),
+        )
+        e = Evidence(
+            source="hn",
+            source_id="1",
+            thread_id="1",
+            points=10**9,
+            kind="submission",
+            published_at=datetime.now(tz.utc),
+        )
+        self.assertLessEqual(components(r, [e])["score"], 100.0)
+
+
+class SnapshotJevOverrideTests(TestCase):
+    def test_incoming_jev_verdict_replaces_older_verdicts_and_relabels_kind_safely(
+        self,
+    ):
+        from .ranking import HALF_LIVES
+        from .snapshot import export_snapshot, load_snapshot
+
+        def row(n, **kw):
+            return Resource.objects.create(
+                url=f"https://sj{n}.example/",
+                title=f"S{n}",
+                category="engineering",
+                **kw,
+            )
+
+        jev_fields = dict(
+            llm_relevant=True,
+            llm_category="agents",
+            llm_score=0.9,
+            llm_topic_confidence=0.8,
+            llm_model="jev-1.14.0",
+            llm_classified_at=timezone.now(),
+            llm_reason="90% likely on-topic",
+        )
+        gem = row(1, kind="news", half_life_days=HALF_LIVES["news"], **jev_fields)
+        tuned = row(2, kind="news", half_life_days=HALF_LIVES["news"], **jev_fields)
+        curated = row(3, kind="news", half_life_days=HALF_LIVES["news"], **jev_fields)
+        already = row(4, kind="news", half_life_days=HALF_LIVES["news"], **jev_fields)
+        path = Path(tempfile.mkdtemp()) / "j.jsonl.gz"
+        export_snapshot(path)
+        old = dict(
+            llm_relevant=False,
+            llm_category="safety",
+            llm_score=None,
+            llm_model="Gemini 3.8 Flash (Low)",
+        )
+        Resource.objects.filter(pk=gem.pk).update(
+            kind="article", half_life_days=HALF_LIVES["article"], **old
+        )
+        Resource.objects.filter(pk=tuned.pk).update(
+            kind="article", half_life_days=777, **old
+        )
+        Resource.objects.filter(pk=curated.pk).update(
+            kind="tool", half_life_days=180, curated=True, **old
+        )
+        Resource.objects.filter(pk=already.pk).update(
+            kind="paper", llm_model="jev-1.14.0", llm_score=0.2, llm_relevant=False
+        )
+        load_snapshot(path)
+        for r in (gem, tuned, curated, already):
+            r.refresh_from_db()
+        self.assertEqual(
+            (gem.llm_model, gem.llm_relevant, gem.llm_score, gem.kind),
+            ("jev-1.14.0", True, 0.9, "news"),
+        )
+        self.assertEqual(gem.half_life_days, HALF_LIVES["news"])
+        self.assertEqual(
+            (tuned.kind, tuned.half_life_days), ("news", 777)
+        )  # hand-tuned half-life kept
+        self.assertEqual(
+            (curated.kind, curated.llm_model), ("tool", "jev-1.14.0")
+        )  # curated kind kept
+        self.assertEqual(
+            (already.kind, already.llm_score), ("paper", 0.2)
+        )  # existing Jev verdict kept
+
+
+class SnapshotJevOnUnreviewedRowsTests(TestCase):
+    def test_rows_with_no_prior_review_also_take_the_jev_kind(self):
+        """Regression: the fill-empty pass used to copy llm_model first, skipping the kind update."""
+        from .ranking import HALF_LIVES
+        from .snapshot import export_snapshot, load_snapshot
+
+        r = Resource.objects.create(
+            url="https://un.example/",
+            title="U",
+            category="engineering",
+            kind="news",
+            half_life_days=HALF_LIVES["news"],
+            llm_relevant=True,
+            llm_category="agents",
+            llm_score=0.9,
+            llm_topic_confidence=0.8,
+            llm_model="jev-1.14.0",
+            llm_classified_at=timezone.now(),
+            llm_reason="90% likely on-topic",
+        )
+        path = Path(tempfile.mkdtemp()) / "u.jsonl.gz"
+        export_snapshot(path)
+        # Production's copy: never reviewed, so every llm_* field is empty.
+        Resource.objects.filter(pk=r.pk).update(
+            kind="article",
+            half_life_days=HALF_LIVES["article"],
+            llm_relevant=None,
+            llm_category="",
+            llm_score=None,
+            llm_topic_confidence=None,
+            llm_model="",
+            llm_classified_at=None,
+            llm_reason="",
+        )
+        load_snapshot(path)
+        r.refresh_from_db()
+        self.assertEqual((r.kind, r.half_life_days), ("news", HALF_LIVES["news"]))
+        self.assertEqual(
+            (r.llm_model, r.llm_score, r.llm_category), ("jev-1.14.0", 0.9, "agents")
+        )

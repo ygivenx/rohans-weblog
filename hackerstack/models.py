@@ -60,6 +60,9 @@ class Resource(models.Model):
     llm_category = models.CharField(max_length=30, blank=True, choices=CATEGORIES)
     llm_reason = models.CharField(max_length=200, blank=True)
     llm_model = models.CharField(max_length=60, blank=True)
+    # Jev's probability that the link is on-topic (0-1) and its confidence in the chosen topic.
+    llm_score = models.FloatField(null=True, blank=True, editable=False)
+    llm_topic_confidence = models.FloatField(null=True, blank=True, editable=False)
     llm_classified_at = models.DateTimeField(null=True, blank=True)
 
     @property
