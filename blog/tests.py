@@ -300,3 +300,92 @@ class DailyBriefingTests(TestCase):
         rss_resp = self.client.get(reverse("blog:briefing_rss"))
         self.assertEqual(rss_resp.status_code, 200)
         self.assertIn("application/rss+xml", rss_resp["Content-Type"])
+
+    @patch("blog.briefings.imaplib.IMAP4_SSL")
+    def test_sync_briefing_wraps_gmail_sanitized_html_fragment(self, mock_imap_cls):
+        fragment = """
+        <div>
+            <div>
+                <span>Vol. IV · No. 323 · Pacific Northwest Edition</span>
+                <span>Thursday, November 19, 2026</span>
+                <span>Sammamish, WA</span>
+            </div>
+            <h1>The Morning Intelligence Briefing</h1>
+            <p>Curated summary of key ideas across AI, markets, systems, and global affairs.</p>
+            <div>
+                <div>All Sections (2)</div>
+                <div>Theme: Light/Dark</div>
+            </div>
+            <div>
+                <h2>Top Signal Today</h2>
+                <ul>
+                    <li><strong>Record $81.3B IPO:</strong> Anthropic priced at $83 per share.</li>
+                    <li><strong>Gemini 4 Neon:</strong> Google DeepMind shipped Gemini 4 Neon.</li>
+                </ul>
+            </div>
+            <h2>1. AI &amp; Frontier Tech</h2>
+            <div>
+                <h3>Gemini 4 Neon Launches</h3>
+                <p>Detailed analysis of <a href="https://www.google.com/url?q=https://blog.google/ai&amp;source=gmail">Gemini 4 Neon</a> and agentic benchmarks across frontier evaluations.</p>
+            </div>
+            <h2>2. Markets &amp; Investing</h2>
+            <div>
+                <h3>Anthropic IPO Pricing</h3>
+                <p>Anthropic raised $81.3B at $83 per share, setting a new global IPO record amid hyperscaler capex expansion.</p>
+            </div>
+        </div>
+        """
+        msg = email.message.EmailMessage()
+        msg["Subject"] = "BRIEFING_AUTO_PUBLISH"
+        msg["From"] = "rohanmyself@gmail.com"
+        msg["To"] = "rohanmyself@gmail.com"
+        msg["Date"] = "Thu, 19 Nov 2026 09:00:58 -0600"
+        msg.add_alternative(fragment, subtype="html")
+        raw_bytes = msg.as_bytes()
+
+        mock_imap = MagicMock()
+        mock_imap_cls.return_value = mock_imap
+        mock_imap.select.return_value = ("OK", [b"1"])
+        mock_imap.search.return_value = ("OK", [b"102"])
+        mock_imap.fetch.return_value = ("OK", [(b"102 (RFC822)", raw_bytes)])
+
+        stats = sync_briefing_from_gmail()
+        self.assertEqual(stats["created"], 1)
+        briefing = DailyBriefing.objects.get(slug="2026-11-19")
+        self.assertEqual(briefing.signal_count, 2)
+        self.assertIn("The Morning Intelligence Briefing", briefing.title)
+        self.assertIn("Vol. IV · No. 323", briefing.edition_meta)
+        self.assertIn("Record \\$81.3B IPO", briefing.executive_summary_md)
+        self.assertIn("<!DOCTYPE html>", briefing.sanitized_html)
+        self.assertIn("<style>", briefing.sanitized_html)
+        self.assertIn("<script>", briefing.sanitized_html)
+        self.assertIn('id="fb-pills"', briefing.sanitized_html)
+        self.assertIn('href="https://blog.google/ai"', briefing.sanitized_html)
+        self.assertNotIn("google.com/url", briefing.sanitized_html)
+        self.assertNotIn("Sammamish", briefing.sanitized_html)
+        self.assertIn("Generated with ❤️ from Seattle, WA", briefing.sanitized_html)
+
+    @patch("blog.briefings.imaplib.IMAP4_SSL")
+    def test_sync_briefing_extracts_html_attachment(self, mock_imap_cls):
+        msg = email.message.EmailMessage()
+        msg["Subject"] = "BRIEFING_AUTO_PUBLISH"
+        msg["From"] = "rohanmyself@gmail.com"
+        msg["To"] = "rohanmyself@gmail.com"
+        msg.set_content("Attached briefing HTML.")
+        msg.add_attachment(
+            SAMPLE_BRIEFING_HTML.encode("utf-8"),
+            maintype="text",
+            subtype="html",
+            filename="2026-10-31-briefing.html",
+        )
+        raw_bytes = msg.as_bytes()
+
+        mock_imap = MagicMock()
+        mock_imap_cls.return_value = mock_imap
+        mock_imap.select.return_value = ("OK", [b"1"])
+        mock_imap.search.return_value = ("OK", [b"103"])
+        mock_imap.fetch.return_value = ("OK", [(b"103 (RFC822)", raw_bytes)])
+
+        stats = sync_briefing_from_gmail()
+        self.assertEqual(stats["created"], 1)
+        self.assertTrue(DailyBriefing.objects.filter(slug="2026-10-31").exists())

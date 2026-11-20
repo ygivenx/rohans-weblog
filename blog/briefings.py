@@ -34,8 +34,8 @@ def _strip_tags(raw_fragment):
     return " ".join(html.unescape(no_tags).split())
 
 
-def parse_briefing_date(raw_html, filename="", fallback_date=None):
-    """Extract briefing date from HTML title, masthead, or filename."""
+def parse_briefing_date(raw_html, filename="", fallback_date=None, default_date=None):
+    """Extract briefing date from HTML title, masthead, header text, or filename."""
     if isinstance(fallback_date, date):
         return fallback_date
     if isinstance(fallback_date, str) and fallback_date.strip():
@@ -76,6 +76,14 @@ def parse_briefing_date(raw_html, filename="", fallback_date=None):
     if filename:
         search_targets.append(filename.replace("_", " ").replace("-", " "))
 
+    # Fallback for classless/Gmail-stripped HTML fragments: inspect leading masthead text
+    if raw_html:
+        body_match = re.search(r"<body[^>]*>([\s\S]{0,4000})", raw_html, re.IGNORECASE)
+        lead_chunk = body_match.group(1) if body_match else raw_html[:4000]
+        lead_text = _strip_tags(lead_chunk)
+        if lead_text:
+            search_targets.append(lead_text)
+
     for target in search_targets:
         m = MONTH_DATE_RE.search(target)
         if m:
@@ -93,23 +101,40 @@ def parse_briefing_date(raw_html, filename="", fallback_date=None):
             except ValueError:
                 pass
 
+    if isinstance(default_date, date):
+        return default_date
     return date.today()
 
 
-def extract_briefing_metadata(raw_html, briefing_date=None, filename=""):
+def _format_long_date(d):
+    return f"{d.strftime('%A, %B')} {d.day}, {d.year}"
+
+
+def extract_briefing_metadata(
+    raw_html, briefing_date=None, filename="", default_date=None
+):
     """Extract structured metadata (title, date, counts, summary, metrics) from raw HTML."""
     parsed_date = parse_briefing_date(
-        raw_html, filename=filename, fallback_date=briefing_date
+        raw_html,
+        filename=filename,
+        fallback_date=briefing_date,
+        default_date=default_date,
     )
 
     title_match = re.search(
         r"<title>(.*?)</title>", raw_html or "", re.IGNORECASE | re.DOTALL
     )
-    title = (
-        _strip_tags(title_match.group(1))
-        if title_match
-        else f"Daily Intelligence Briefing • {parsed_date.strftime('%B %d, %Y')}"
-    )
+    if title_match and _strip_tags(title_match.group(1)):
+        title = _strip_tags(title_match.group(1))
+    else:
+        h1_match = re.search(
+            r"<h1[^>]*>(.*?)</h1>", raw_html or "", re.IGNORECASE | re.DOTALL
+        )
+        h1_text = _strip_tags(h1_match.group(1)) if h1_match else ""
+        if h1_text:
+            title = f"{h1_text} — {_format_long_date(parsed_date)}"
+        else:
+            title = f"Daily Intelligence Briefing • {parsed_date.strftime('%B %d, %Y')}"
 
     # Extract edition meta (e.g., "Vol. XLIV • No. 304")
     edition_meta = ""
@@ -122,14 +147,14 @@ def extract_briefing_metadata(raw_html, briefing_date=None, filename=""):
         edition_meta = _strip_tags(masthead_spans[0][1])
     else:
         vol_match = re.search(
-            r"(Vol\.[A-Za-z0-9\s•·.\-]+No\.\s*\d+)",
+            r"(Vol\.[A-Za-z0-9\s•·.\-]+No\.\s*\d+|Edition\s+No\.\s*[A-Za-z0-9\-]+)",
             raw_html or "",
             re.IGNORECASE,
         )
         if vol_match:
             edition_meta = _strip_tags(vol_match.group(1))
 
-    # Extract signal count (supports both static <article class="briefing-card"> and JS-rendered ITEMS)
+    # Extract signal count (supports static briefing-card, JS-rendered ITEMS, and classless <h3> cards)
     card_ids = re.findall(
         r'<article[^>]+class="[^"]*briefing-card[^"]*"',
         raw_html or "",
@@ -139,13 +164,19 @@ def extract_briefing_metadata(raw_html, briefing_date=None, filename=""):
     if not signal_count:
         for pattern in (
             r'<div class="badge-processed">\s*<strong>(\d+)</strong>',
+            r"<strong>(\d+)</strong>\s*Synthesized Briefings",
             r"(\d+)\s+Synthesized Briefings",
-            r">All\s*\((\d+)\)<",
+            r">All(?:\s+Sections)?\s*\((\d+)\)<",
+            r"All\s+Sections\s*\((\d+)\)",
+            r"All\s+Briefings\s*<span[^>]*>(\d+)</span>",
         ):
             m_count = re.search(pattern, raw_html or "", re.IGNORECASE | re.DOTALL)
             if m_count:
                 signal_count = int(m_count.group(1))
                 break
+    if not signal_count:
+        h3_cards = re.findall(r"<h3\b[^>]*>", raw_html or "", re.IGNORECASE)
+        signal_count = len(h3_cards)
 
     # Extract 3-bullet executive summary
     signal_items = re.findall(
@@ -162,6 +193,28 @@ def extract_briefing_metadata(raw_html, briefing_date=None, filename=""):
             safe_label = re.sub(r"\$(?=[0-9A-Za-z])", r"\\$", label)
             safe_text = re.sub(r"\$(?=[0-9A-Za-z])", r"\\$", text)
             summary_lines.append(f"- **{safe_label}** — {safe_text}")
+
+    # Fallback for classless HTML fragments: extract lead <ul><li><strong>Label:</strong> Text</li></ul>
+    if not summary_lines and raw_html:
+        lead_ul = re.search(r"<ul\b[^>]*>([\s\S]*?)</ul>", raw_html, re.IGNORECASE)
+        if lead_ul:
+            li_matches = re.findall(
+                r"<li\b[^>]*>([\s\S]*?)</li>", lead_ul.group(1), re.IGNORECASE
+            )
+            for li_raw in li_matches[:5]:
+                strong_m = re.match(
+                    r"\s*<strong[^>]*>([\s\S]*?)</strong>\s*([\s\S]*)",
+                    li_raw,
+                    re.IGNORECASE,
+                )
+                if strong_m:
+                    label = _strip_tags(strong_m.group(1)).rstrip(":—–- ")
+                    text = _strip_tags(strong_m.group(2)).lstrip(":—–- ")
+                    if label and text:
+                        safe_label = re.sub(r"\$(?=[0-9A-Za-z])", r"\\$", label)
+                        safe_text = re.sub(r"\$(?=[0-9A-Za-z])", r"\\$", text)
+                        summary_lines.append(f"- **{safe_label}** — {safe_text}")
+
     executive_summary_md = "\n\n".join(summary_lines)
 
     # Extract metric cards
@@ -392,8 +445,14 @@ def sanitize_briefing_html(raw_html):
         flags=re.IGNORECASE | re.DOTALL,
     )
     cleaned = re.sub(
-        r"Sammamish,\s*Washington",
+        r"Sammamish,\s*(?:Washington|WA)\b",
         "Generated with ❤️ from Seattle, WA",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(
+        r"Sammamish\s*(?:&amp;|&)\s*Seattle(?:,\s*WA)?",
+        "Seattle, WA",
         cleaned,
         flags=re.IGNORECASE,
     )
@@ -516,8 +575,424 @@ def mirror_briefing_to_feed(briefing):
     return item
 
 
+FALLBACK_BRIEFING_STYLE = """<style>
+:root {
+    --bg: #FAF9F5;
+    --surface: #FFFFFF;
+    --subtle: #F2EFE9;
+    --ink: #111111;
+    --sec: #333333;
+    --muted: #666666;
+    --border: #DCD8CF;
+    --accent: #1A5FB4;
+    --accent-soft: #EBF3FC;
+    --serif: "Playfair Display", Georgia, "Times New Roman", serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+[data-theme="dark"] {
+    --bg: #111318;
+    --surface: #181B22;
+    --subtle: #1F2430;
+    --ink: #F3F4F6;
+    --sec: #D1D5DB;
+    --muted: #9CA3AF;
+    --border: #2A3040;
+    --accent: #60A5FA;
+    --accent-soft: #1E293B;
+}
+* { box-sizing: border-box; }
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+}
+.fb-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.65rem 1.25rem;
+}
+.fb-toolbar-inner {
+    max-width: 1060px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+.fb-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+.fb-pill {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--sec);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.fb-pill:hover { border-color: var(--accent); color: var(--accent); }
+.fb-pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #FFFFFF;
+}
+.fb-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.fb-search {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    padding: 0.32rem 0.65rem;
+    border-radius: 6px;
+    width: 210px;
+}
+.fb-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fb-theme-btn, .fb-card-btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--subtle);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.fb-theme-btn:hover, .fb-card-btn:hover { border-color: var(--accent); color: var(--accent); }
+.fb-container {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+}
+.fb-container h1 {
+    font-family: var(--serif);
+    font-size: clamp(1.9rem, 3.6vw, 2.75rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0.5rem 0 0.75rem;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 0.75rem;
+}
+.fb-container h2 {
+    font-family: var(--serif);
+    font-size: 1.45rem;
+    line-height: 1.25;
+    margin: 2.25rem 0 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+}
+.fb-container h3 {
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    line-height: 1.3;
+    margin: 0 0 0.6rem;
+}
+.fb-container p { margin: 0.5rem 0 0.85rem; color: var(--sec); }
+.fb-container ul { padding-left: 1.25rem; margin: 0.5rem 0 1rem; }
+.fb-container li { margin-bottom: 0.5rem; color: var(--sec); }
+.fb-container a { color: var(--accent); text-decoration: none; }
+.fb-container a:hover { text-decoration: underline; }
+.fb-container code {
+    font-family: var(--mono);
+    font-size: 0.84em;
+    background: var(--subtle);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+.fb-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.88rem;
+}
+.fb-container th, .fb-container td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+}
+.fb-container th { background: var(--subtle); font-weight: 600; }
+.fb-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.15rem 1.3rem;
+    margin: 1rem 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.fb-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed var(--border);
+}
+.fb-hidden { display: none !important; }
+.fb-empty {
+    text-align: center;
+    color: var(--muted);
+    font-family: var(--mono);
+    padding: 2rem 1rem;
+}
+@media (max-width: 640px) {
+    .fb-search { width: 100%; }
+    .fb-controls { width: 100%; }
+}
+</style>"""
+
+FALLBACK_BRIEFING_SCRIPT = """<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var root = document.getElementById('briefing-content');
+    if (!root) return;
+
+    // 1. Hide dead plain-text toolbar remnants left behind when Gmail strips <button>/<input>
+    root.querySelectorAll('div').forEach(function(div) {
+        if (div.querySelector('h1, h2, h3, p, ul, ol, table, a')) return;
+        var t = (div.textContent || '').replace(/\\s+/g, ' ').trim();
+        if (
+            t && t.length < 260 &&
+            (/Theme:\\s*Light\\/Dark/i.test(t) ||
+             /Expand All Drawers/i.test(t) ||
+             (/All\\s+(Sections|Briefings)/i.test(t) && /\\b(Dark Mode|Light\\/Dark|AI &)/i.test(t)))
+        ) {
+            div.classList.add('fb-hidden');
+        }
+    });
+
+    // 2. Tag each story card (nearest container around a single <h3>) and add Listen/Share controls
+    var h3s = Array.from(root.querySelectorAll('h3'));
+    var cards = [];
+    h3s.forEach(function(h3, idx) {
+        var card = h3.parentElement;
+        while (
+            card &&
+            card !== root &&
+            card.parentElement &&
+            card.parentElement !== root &&
+            card.parentElement.querySelectorAll('h3').length === 1 &&
+            card.parentElement.querySelectorAll('h2').length === 0
+        ) {
+            card = card.parentElement;
+        }
+        if (!card || card === root) card = h3;
+        var cardId = 'card-' + (idx + 1);
+        card.id = cardId;
+        card.classList.add('fb-card');
+
+        var actions = document.createElement('div');
+        actions.className = 'fb-card-actions';
+
+        var listenBtn = document.createElement('button');
+        listenBtn.type = 'button';
+        listenBtn.className = 'fb-card-btn';
+        listenBtn.textContent = '🔊 Listen';
+        listenBtn.addEventListener('click', function() {
+            if (!('speechSynthesis' in window)) return;
+            if (window.speechSynthesis.speaking && listenBtn.dataset.speaking === '1') {
+                window.speechSynthesis.cancel();
+                listenBtn.dataset.speaking = '0';
+                listenBtn.textContent = '🔊 Listen';
+                return;
+            }
+            window.speechSynthesis.cancel();
+            document.querySelectorAll('.fb-card-btn[data-speaking="1"]').forEach(function(b) {
+                b.dataset.speaking = '0';
+                b.textContent = '🔊 Listen';
+            });
+            var text = (card.innerText || card.textContent || '').replace(/🔊 Listen|⏹ Stop|🔗 Share|✓ Copied/g, '').trim();
+            var u = new SpeechSynthesisUtterance(text);
+            u.onend = u.onerror = function() {
+                listenBtn.dataset.speaking = '0';
+                listenBtn.textContent = '🔊 Listen';
+            };
+            listenBtn.dataset.speaking = '1';
+            listenBtn.textContent = '⏹ Stop';
+            window.speechSynthesis.speak(u);
+        });
+        actions.appendChild(listenBtn);
+
+        var shareBtn = document.createElement('button');
+        shareBtn.type = 'button';
+        shareBtn.className = 'fb-card-btn';
+        shareBtn.textContent = '🔗 Share';
+        shareBtn.addEventListener('click', function() {
+            var headline = (h3.textContent || '').trim();
+            var baseUrl = 'https://rohansweblog.com/briefings/';
+            try {
+                if (window.parent && window.parent.location && window.parent.location.origin) {
+                    baseUrl = window.parent.location.origin + window.parent.location.pathname;
+                }
+            } catch (err) {}
+            var payload = headline + '\\n\\n' + baseUrl + '#' + cardId;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(payload).then(function() {
+                    shareBtn.textContent = '✓ Copied';
+                    setTimeout(function() { shareBtn.textContent = '🔗 Share'; }, 1400);
+                });
+            }
+        });
+        actions.appendChild(shareBtn);
+        card.appendChild(actions);
+
+        cards.push({ el: card, h3: h3, sectionIdx: -1, text: (card.textContent || '').toLowerCase() });
+    });
+
+    // 3. Map cards to preceding content <h2> sections
+    var h2s = Array.from(root.querySelectorAll('h2'));
+    var sections = [];
+    var allNodes = Array.from(root.querySelectorAll('h2, .fb-card'));
+    var currentSection = null;
+    allNodes.forEach(function(node) {
+        if (node.tagName === 'H2') {
+            currentSection = { h2: node, label: (node.textContent || '').replace(/\\s+/g, ' ').trim(), cards: [] };
+            sections.push(currentSection);
+        } else if (currentSection) {
+            var c = cards.find(function(item) { return item.el === node; });
+            if (c) {
+                c.sectionIdx = sections.length - 1;
+                currentSection.cards.push(c);
+            }
+        }
+    });
+    sections = sections.filter(function(s) { return s.cards.length > 0; });
+    sections.forEach(function(sec, idx) {
+        sec.idx = idx;
+        sec.cards.forEach(function(c) { c.sectionIdx = idx; });
+    });
+
+    // 4. Wire up filter pills, search box, and dark/light theme toggle
+    var pillsEl = document.getElementById('fb-pills');
+    var searchEl = document.getElementById('fb-search');
+    var themeBtn = document.getElementById('fb-theme');
+    var emptyEl = document.getElementById('fb-empty');
+    var activeSection = 'all';
+
+    function applyFilter() {
+        var q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+        var visibleCount = 0;
+        cards.forEach(function(c) {
+            var secOk = activeSection === 'all' || String(c.sectionIdx) === String(activeSection);
+            var qOk = !q || c.text.indexOf(q) !== -1;
+            var show = secOk && qOk;
+            c.el.classList.toggle('fb-hidden', !show);
+            if (show) visibleCount++;
+        });
+        sections.forEach(function(sec) {
+            var anyVisible = sec.cards.some(function(c) { return !c.el.classList.contains('fb-hidden'); });
+            sec.h2.classList.toggle('fb-hidden', !anyVisible);
+        });
+        if (emptyEl) emptyEl.classList.toggle('fb-hidden', visibleCount > 0 || cards.length === 0);
+    }
+
+    if (pillsEl && sections.length > 0) {
+        function addPill(label, value, isActive) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'fb-pill' + (isActive ? ' active' : '');
+            btn.textContent = label;
+            btn.addEventListener('click', function() {
+                activeSection = value;
+                pillsEl.querySelectorAll('.fb-pill').forEach(function(p) { p.classList.remove('active'); });
+                btn.classList.add('active');
+                applyFilter();
+            });
+            pillsEl.appendChild(btn);
+        }
+        addPill('All (' + cards.length + ')', 'all', true);
+        sections.forEach(function(sec) {
+            var shortLabel = sec.label.length > 34 ? sec.label.slice(0, 32) + '…' : sec.label;
+            addPill(shortLabel + ' (' + sec.cards.length + ')', sec.idx, false);
+        });
+    }
+
+    if (searchEl) {
+        searchEl.addEventListener('input', applyFilter);
+    }
+    if (themeBtn) {
+        themeBtn.addEventListener('click', function() {
+            var htmlEl = document.documentElement;
+            var dark = htmlEl.getAttribute('data-theme') === 'dark';
+            htmlEl.setAttribute('data-theme', dark ? 'light' : 'dark');
+            themeBtn.textContent = dark ? '🌙 Dark' : '☀️ Light';
+        });
+    }
+});
+</script>"""
+
+
+def _wrap_html_fragment(fragment_html, default_date=None):
+    """
+    Wrap a Gmail-sanitized HTML fragment (missing <!DOCTYPE html>, <style>, <script>)
+    into a complete standalone interactive HTML document.
+    """
+    parsed_date = parse_briefing_date(fragment_html, default_date=default_date)
+    h1_match = re.search(
+        r"<h1[^>]*>(.*?)</h1>", fragment_html or "", re.IGNORECASE | re.DOTALL
+    )
+    h1_text = (
+        _strip_tags(h1_match.group(1)) if h1_match else "Daily Intelligence Briefing"
+    )
+    title = html.escape(f"{h1_text} — {_format_long_date(parsed_date)}")
+
+    return (
+        "<!DOCTYPE html>\n"
+        '<html lang="en" data-theme="light">\n'
+        "<head>\n"
+        '<meta charset="UTF-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+        f"<title>{title}</title>\n"
+        '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+        '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700'
+        '&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">\n'
+        f"{FALLBACK_BRIEFING_STYLE}\n"
+        "</head>\n"
+        "<body>\n"
+        '<div class="fb-toolbar">\n'
+        '  <div class="fb-toolbar-inner">\n'
+        '    <div class="fb-pills" id="fb-pills"></div>\n'
+        '    <div class="fb-controls">\n'
+        '      <input type="search" id="fb-search" class="fb-search" placeholder="Search signals…" aria-label="Search signals">\n'
+        '      <button type="button" id="fb-theme" class="fb-theme-btn">🌙 Dark</button>\n'
+        "    </div>\n"
+        "  </div>\n"
+        "</div>\n"
+        '<main class="fb-container" id="briefing-content">\n'
+        f"{fragment_html}\n"
+        '<p id="fb-empty" class="fb-empty fb-hidden">No signals match your current filter.</p>\n'
+        "</main>\n"
+        f"{FALLBACK_BRIEFING_SCRIPT}\n"
+        "</body>\n"
+        "</html>"
+    )
+
+
 @transaction.atomic
-def ingest_briefing_html(raw_html, briefing_date=None, filename="", is_published=True):
+def ingest_briefing_html(
+    raw_html, briefing_date=None, filename="", is_published=True, default_date=None
+):
     """
     Parse, sanitize, and upsert a DailyBriefing record from a Gemini HTML artifact,
     and mirror its executive summary to the main Feed.
@@ -528,9 +1003,20 @@ def ingest_briefing_html(raw_html, briefing_date=None, filename="", is_published
     )
     if doctype_match:
         raw_html = doctype_match.group(0)
+    else:
+        html_doc_match = re.search(
+            r"<html\b[\s\S]*</html>", raw_html or "", re.IGNORECASE
+        )
+        if html_doc_match:
+            raw_html = "<!DOCTYPE html>\n" + html_doc_match.group(0)
+        elif raw_html and re.search(r"<h[123]\b", raw_html, re.IGNORECASE):
+            raw_html = _wrap_html_fragment(raw_html, default_date=default_date)
 
     meta = extract_briefing_metadata(
-        raw_html, briefing_date=briefing_date, filename=filename
+        raw_html,
+        briefing_date=briefing_date,
+        filename=filename,
+        default_date=default_date,
     )
     sanitized = sanitize_briefing_html(raw_html)
     parsed_date = meta["briefing_date"]
@@ -554,34 +1040,59 @@ def ingest_briefing_html(raw_html, briefing_date=None, filename="", is_published
     return briefing, created
 
 
+def _extract_email_date(msg):
+    """Best-effort date extraction from an email message's Date header."""
+    raw_date = msg.get("Date")
+    if not raw_date:
+        return None
+    try:
+        dt = email.utils.parsedate_to_datetime(raw_date)
+        return dt.date() if dt else None
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
 def _extract_html_from_email_message(msg):
     """
-    Extract raw <!DOCTYPE html>...</html> from a parsed email.message.Message.
-    Handles both text/plain and HTML-escaped text/html Gmail draft bodies.
+    Extract briefing HTML from a parsed email.message.Message.
+    Supports:
+    1. .html/.htm file attachments (never sanitized by Gmail)
+    2. Full <!DOCTYPE html>...</html> or <html>...</html> in text/plain or text/html
+       (raw or HTML-escaped)
+    3. Gmail-sanitized text/html body fragments (automatically wrapped with editorial
+       CSS and interactive JS)
     """
-    candidates = []
-    if msg.is_multipart():
-        for part in msg.walk():
-            content_type = part.get_content_type()
-            if content_type in ("text/plain", "text/html"):
-                payload = part.get_payload(decode=True)
-                if payload:
-                    charset = part.get_content_charset() or "utf-8"
-                    text = payload.decode(charset, errors="replace")
-                    if content_type == "text/plain":
-                        candidates.insert(0, text)
-                    else:
-                        candidates.append(text)
-    else:
-        payload = msg.get_payload(decode=True)
-        if payload:
-            charset = msg.get_content_charset() or "utf-8"
-            candidates.append(payload.decode(charset, errors="replace"))
+    attachment_candidates = []
+    text_candidates = []
+    html_candidates = []
 
-    for raw in candidates:
+    parts = list(msg.walk()) if msg.is_multipart() else [msg]
+    for part in parts:
+        if part.is_multipart():
+            continue
+        payload = part.get_payload(decode=True)
+        if not payload:
+            continue
+        charset = part.get_content_charset() or "utf-8"
+        text = payload.decode(charset, errors="replace")
+        filename = (part.get_filename() or "").lower()
+        content_type = part.get_content_type()
+
+        if filename.endswith((".html", ".htm")):
+            attachment_candidates.append(text)
+        elif content_type == "text/plain":
+            text_candidates.append(text)
+        elif content_type == "text/html":
+            html_candidates.append(text)
+
+    # 1. Prefer full HTML documents (attachments -> text/plain -> text/html)
+    for raw in attachment_candidates + text_candidates + html_candidates:
         match = re.search(r"<!DOCTYPE\s+html>[\s\S]*</html>", raw, re.IGNORECASE)
         if match:
             return match.group(0)
+        html_match = re.search(r"<html\b[\s\S]*</html>", raw, re.IGNORECASE)
+        if html_match:
+            return "<!DOCTYPE html>\n" + html_match.group(0)
         # In case Gmail rich-text draft escaped the HTML tags (&lt;!DOCTYPE html&gt;)
         unescaped = html.unescape(re.sub(r"<br\s*/?>", "\n", raw, flags=re.IGNORECASE))
         unescaped = re.sub(r"</?(div|p)[^>]*>", "\n", unescaped, flags=re.IGNORECASE)
@@ -589,6 +1100,17 @@ def _extract_html_from_email_message(msg):
         match = re.search(r"<!DOCTYPE\s+html>[\s\S]*</html>", unescaped, re.IGNORECASE)
         if match:
             return match.group(0)
+
+    # 2. Fallback: Gmail-stripped rich-text HTML draft (has headings & substantial body,
+    #    but Gmail stripped <!DOCTYPE>, <head>, <style>, <script>, and classes)
+    email_date = _extract_email_date(msg)
+    for raw in attachment_candidates + html_candidates:
+        if (
+            len(raw.strip()) >= 500
+            and re.search(r"<h[123]\b", raw, re.IGNORECASE)
+            and re.search(r"<(?:p|li|div)\b", raw, re.IGNORECASE)
+        ):
+            return _wrap_html_fragment(raw, default_date=email_date)
 
     return None
 
@@ -646,9 +1168,16 @@ def sync_briefing_from_gmail():
 
                     extracted_html = _extract_html_from_email_message(msg)
                     if not extracted_html:
+                        logger.warning(
+                            "Skipping briefing draft id=%s (Date=%s): could not extract HTML content",
+                            msg_id.decode(errors="replace"),
+                            msg.get("Date", ""),
+                        )
                         continue
 
-                    _, created = ingest_briefing_html(extracted_html)
+                    _, created = ingest_briefing_html(
+                        extracted_html, default_date=_extract_email_date(msg)
+                    )
                     if created:
                         created_count += 1
                     else:
