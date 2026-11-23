@@ -1861,3 +1861,191 @@ class SnapshotJevOnUnreviewedRowsTests(TestCase):
         self.assertEqual(
             (r.llm_model, r.llm_score, r.llm_category), ("jev-1.14.0", 0.9, "agents")
         )
+
+
+@override_settings(STORAGES=STORAGES)
+class WeeklyTests(TestCase):
+    def _add_story(
+        self,
+        url,
+        title,
+        source_id,
+        published_at,
+        points=100,
+        comments=20,
+        category="agents",
+        source="hn",
+        ev_kind="submission",
+        **resource_kwargs,
+    ):
+        resource, _ = Resource.objects.get_or_create(
+            url=url,
+            defaults=dict(
+                title=title,
+                description=f"Summary for {title}",
+                category=category,
+                **resource_kwargs,
+            ),
+        )
+        return Evidence.objects.create(
+            resource=resource,
+            source=source,
+            source_id=source_id,
+            thread_id=source_id,
+            discussion_url=f"https://news.ycombinator.com/item?id={source_id}",
+            title=title,
+            points=points,
+            comments=comments,
+            published_at=published_at,
+            kind=ev_kind,
+        )
+
+    def test_weekly_defaults_to_latest_hn_week_and_ranks_by_points(self):
+        from datetime import datetime, timezone as dt_timezone
+
+        # 2026-W45: Nov 2 – Nov 8, 2026; 2026-W44: Oct 26 – Nov 1, 2026
+        self._add_story(
+            "https://example.org/old",
+            "Older Story",
+            "100",
+            datetime(2026, 10, 29, 12, 0, tzinfo=dt_timezone.utc),
+            points=900,
+        )
+        self._add_story(
+            "https://example.org/low",
+            "Lower Story",
+            "201",
+            datetime(2026, 11, 3, 12, 0, tzinfo=dt_timezone.utc),
+            points=80,
+            category="llms",
+        )
+        self._add_story(
+            "https://example.org/top",
+            "Top Story",
+            "202",
+            datetime(2026, 11, 5, 18, 0, tzinfo=dt_timezone.utc),
+            points=420,
+            comments=150,
+            category="agents",
+        )
+        # Duplicate submission of the same resource in the same week with fewer points
+        self._add_story(
+            "https://example.org/top",
+            "Top Story",
+            "203",
+            datetime(2026, 11, 6, 9, 0, tzinfo=dt_timezone.utc),
+            points=12,
+        )
+        # Excluded: off-topic, inactive, lobsters, comment mention
+        self._add_story(
+            "https://example.org/offtopic",
+            "Off-topic Story",
+            "204",
+            datetime(2026, 11, 5, 12, 0, tzinfo=dt_timezone.utc),
+            points=999,
+            llm_relevant=False,
+        )
+        self._add_story(
+            "https://example.org/inactive",
+            "Inactive Story",
+            "205",
+            datetime(2026, 11, 5, 12, 0, tzinfo=dt_timezone.utc),
+            points=999,
+            is_active=False,
+        )
+        self._add_story(
+            "https://example.org/lobsters",
+            "Lobsters Story",
+            "abc123",
+            datetime(2026, 11, 5, 12, 0, tzinfo=dt_timezone.utc),
+            points=999,
+            source="lobsters",
+        )
+        self._add_story(
+            "https://example.org/mention",
+            "Comment Mention",
+            "206",
+            datetime(2026, 11, 5, 12, 0, tzinfo=dt_timezone.utc),
+            points=None,
+            ev_kind="mention",
+        )
+
+        response = self.client.get("/hackerstack/weekly/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["week_code"], "2026-W45")
+        self.assertEqual(response.context["prev_week"], "2026-W44")
+        self.assertEqual(response.context["next_week"], "")
+        self.assertTrue(response.context["is_latest"])
+        entries = list(response.context["page"])
+        self.assertEqual(
+            [(e["resource"].title, e["evidence"].points) for e in entries],
+            [("Top Story", 420), ("Lower Story", 80)],
+        )
+
+    def test_weekly_specific_week_and_topic_filter(self):
+        from datetime import datetime, timezone as dt_timezone
+
+        self._add_story(
+            "https://example.org/w44",
+            "Reviewed Topic Story",
+            "301",
+            datetime(2026, 10, 28, 12, 0, tzinfo=dt_timezone.utc),
+            points=300,
+            category="engineering",
+            llm_relevant=True,
+            llm_category="evals",
+        )
+        self._add_story(
+            "https://example.org/w45",
+            "Next Week Story",
+            "302",
+            datetime(2026, 11, 4, 12, 0, tzinfo=dt_timezone.utc),
+            points=200,
+        )
+
+        response = self.client.get(
+            "/hackerstack/weekly/2026-W44/", {"category": "evals"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["week_code"], "2026-W44")
+        self.assertEqual(response.context["next_week"], "2026-W45")
+        self.assertEqual(response.context["prev_week"], "")
+        self.assertEqual(len(response.context["page"]), 1)
+        self.assertEqual(
+            response.context["page"][0]["resource"].title, "Reviewed Topic Story"
+        )
+
+        empty = self.client.get("/hackerstack/weekly/2026-W44/", {"category": "rl"})
+        self.assertEqual(len(empty.context["page"]), 0)
+
+    def test_weekly_invalid_week_returns_404(self):
+        for bad in ("not-a-week", "2026-W00", "2026-W99", "2026-11-01"):
+            self.assertEqual(
+                self.client.get(f"/hackerstack/weekly/{bad}/").status_code, 404
+            )
+
+    def test_weekly_empty_database_and_subnav_links(self):
+        index_resp = self.client.get("/hackerstack/")
+        self.assertContains(index_resp, 'href="/hackerstack/weekly/"')
+        weekly_resp = self.client.get("/hackerstack/weekly/")
+        self.assertEqual(weekly_resp.status_code, 200)
+        self.assertContains(weekly_resp, 'href="/hackerstack/"')
+        self.assertEqual(weekly_resp.context["total_count"], 0)
+
+    def test_weekly_rss_returns_latest_week_items(self):
+        from datetime import datetime, timezone as dt_timezone
+
+        self._add_story(
+            "https://example.org/rss-story",
+            "RSS Top Story",
+            "401",
+            datetime(2026, 11, 5, 12, 0, tzinfo=dt_timezone.utc),
+            points=512,
+            comments=88,
+        )
+        response = self.client.get("/hackerstack/weekly/rss/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("application/rss+xml", response["Content-Type"])
+        self.assertContains(response, "RSS Top Story")
+        self.assertContains(response, "512 points")
+        self.assertContains(response, "https://news.ycombinator.com/item?id=401")

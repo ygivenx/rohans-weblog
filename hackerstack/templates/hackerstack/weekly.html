@@ -1,0 +1,83 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+{% block title %}Weekly HN ({{ week_code }}) — HackerStack — Rohan's Weblog{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'hackerstack/catalog.css' %}">{% endblock %}
+{% block content %}
+<div class="hs">
+  <nav class="hs-subnav" aria-label="HackerStack sections">
+    <a href="{% url 'hackerstack:index' %}">Directory</a>
+    <a href="{% url 'hackerstack:weekly' %}" aria-current="page">Weekly HN</a>
+  </nav>
+
+  <div class="hs-intro">
+    <p class="hs-eyebrow">Weekly Hacker News · {{ week_code }}</p>
+    <h2>Top HN This Week<span aria-hidden="true">↗</span></h2>
+    <p class="hs-lede">{{ week_start|date:"M j" }} – {{ week_end|date:"M j, Y" }}</p>
+    <p class="hs-subtitle">The highest-voted AI and software engineering stories published on Hacker News during this week, ranked by HN points with off-topic noise filtered out.</p>
+    <div class="hs-week-nav">
+      <div class="hs-week-pager">
+        {% if prev_week %}<a href="{% url 'hackerstack:weekly_issue' prev_week %}{% if category %}?category={{ category|urlencode }}{% endif %}">← Previous week</a>{% else %}<span class="hs-disabled">← Previous week</span>{% endif %}
+        {% if next_week %}<a href="{% url 'hackerstack:weekly_issue' next_week %}{% if category %}?category={{ category|urlencode }}{% endif %}">Next week →</a>{% else %}<span class="hs-disabled">Latest week</span>{% endif %}
+        {% if not is_latest %}<a href="{% url 'hackerstack:weekly' %}{% if category %}?category={{ category|urlencode }}{% endif %}">Jump to latest</a>{% endif %}
+      </div>
+      <div class="hs-week-links">
+        <span>{{ total_count }} stor{{ total_count|pluralize:"y,ies" }}</span>
+        <a href="{% url 'hackerstack:weekly_rss' %}">RSS</a>
+      </div>
+    </div>
+  </div>
+
+  {% if topic_counts %}
+  <nav class="hs-topics" aria-label="Filter weekly stories by topic">
+    <a href="{% url 'hackerstack:weekly_issue' week_code %}" {% if not category %}aria-current="page"{% endif %}>All topics<span>{{ total_count }}</span></a>
+    {% for key, label, count in topic_counts %}
+    <a href="{% url 'hackerstack:weekly_issue' week_code %}?category={{ key }}" {% if category == key %}aria-current="page"{% endif %}>{{ label }}<span>{{ count }}</span></a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  <div class="hs-results-head">
+    <p>{% if category %}Filtered by topic{% else %}Ranked by Hacker News points{% endif %}</p>
+    {% if category %}<a href="{% url 'hackerstack:weekly_issue' week_code %}">Clear topic filter</a>{% else %}<span>Updated daily by the HackerStack worker.</span>{% endif %}
+  </div>
+
+  <ol class="hs-results" start="{{ page.start_index }}">
+    {% for entry in page %}
+    {% with resource=entry.resource ev=entry.evidence %}
+    <li class="hs-result">
+      <div class="hs-result-top">
+        <div class="hs-tags">
+          <span>{{ resource.topic_label }}{% if resource.topic_changed_by_review %} <abbr title="Topic chosen by an AI review of the page; the keyword match said {{ resource.get_category_display }}">✦</abbr>{% endif %}</span>
+          <span>{{ resource.get_kind_display }}</span>
+          {% if resource.curated %}<span class="hs-curated">Editor's pick</span>{% endif %}
+        </div>
+        <span class="hs-score" title="Hacker News points">{% if ev.points != None %}{{ ev.points }}<small> pts</small>{% else %}HN{% endif %}</span>
+      </div>
+      <h3><a href="{{ resource.url }}" rel="noopener noreferrer">{{ resource.title }} <span aria-hidden="true">↗</span></a></h3>
+      <p class="hs-url">{{ resource.url|truncatechars:90 }}</p>
+      <p class="hs-description">{{ resource.description }}</p>
+      <div class="hs-meta">
+        <span>{{ ev.published_at|date:"M j, Y" }}</span>
+        <span>{{ ev.comments }} comment{{ ev.comments|pluralize }}</span>
+        <a href="{{ ev.discussion_url }}" rel="noopener noreferrer">HN discussion ↗</a>
+      </div>
+    </li>
+    {% endwith %}
+    {% empty %}
+    <li class="hs-empty">
+      <h3>No Hacker News stories indexed for {{ week_code }}.</h3>
+      <p>Try another week or explore the full evergreen HackerStack directory.</p>
+      <a href="{% url 'hackerstack:index' %}">Explore the directory →</a>
+    </li>
+    {% endfor %}
+  </ol>
+
+  {% if page.has_other_pages %}
+  <nav class="hs-pagination" aria-label="Weekly story pages">
+    {% if page.has_previous %}<a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.previous_page_number }}">← Previous</a>{% endif %}
+    <span>Page {{ page.number }}</span>
+    {% if page.has_next %}<a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.next_page_number }}">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

@@ -4,6 +4,10 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'hackerstack/catalog.css' %}">{% endblock %}
 {% block content %}
 <div class="hs">
+  <nav class="hs-subnav" aria-label="HackerStack sections">
+    <a href="{% url 'hackerstack:index' %}" aria-current="page">Directory</a>
+    <a href="{% url 'hackerstack:weekly' %}">Weekly HN</a>
+  </nav>
   <div class="hs-intro">
     <p class="hs-eyebrow">A field guide to building with AI</p>
     <h2>HackerStack<span aria-hidden="true">↗</span></h2>
