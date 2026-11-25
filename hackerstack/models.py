@@ -143,6 +143,12 @@ class Evidence(models.Model):
                 fields=["resource", "source", "source_id"], name="hs_unique_evidence"
             )
         ]
+        indexes = [
+            models.Index(
+                fields=["source", "kind", "published_at"],
+                name="hs_ev_src_kind_pub_idx",
+            )
+        ]
         ordering = ["-points", "id"]
 
 

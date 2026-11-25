@@ -33,4 +33,4 @@ USER django
 EXPOSE 8000
 
 # Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60", "rohans_weblog.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--preload", "--worker-class", "gthread", "--workers", "3", "--threads", "2", "--timeout", "60", "--max-requests", "1000", "--max-requests-jitter", "100", "rohans_weblog.wsgi:application"]

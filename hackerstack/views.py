@@ -2,6 +2,7 @@ from collections import Counter
 from datetime import date, datetime, time, timedelta, timezone as dt_timezone
 import re
 
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Case, CharField, F, Max, Q, When
 from django.http import Http404, HttpResponse
@@ -15,6 +16,24 @@ from .models import CATEGORIES, Evidence, KINDS, Resource
 from .search import search
 
 WEEK_RE = re.compile(r"^(\d{4})-W(\d{2})$")
+HS_META_CACHE_KEY = "hackerstack:index_meta"
+HS_META_CACHE_TTL = 300
+
+
+def invalidate_hs_meta_cache(**kwargs):
+    cache.delete(HS_META_CACHE_KEY)
+
+
+def _index_meta():
+    meta = cache.get(HS_META_CACHE_KEY)
+    if meta is None:
+        active = Resource.objects.filter(is_active=True)
+        meta = {
+            "has_filtered": active.filter(llm_relevant=False).exists(),
+            "ranked_at": Resource.objects.aggregate(value=Max("ranked_at"))["value"],
+        }
+        cache.set(HS_META_CACHE_KEY, meta, HS_META_CACHE_TTL)
+    return meta
 
 
 def _format_week(year, week_num):
@@ -146,9 +165,11 @@ def weekly_rss(request):
             unique_id=f"{week_code}:{ev.source_id}",
             pubdate=ev.published_at,
         )
-    return HttpResponse(
+    response = HttpResponse(
         feed.writeString("utf-8"), content_type="application/rss+xml; charset=utf-8"
     )
+    response["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 def index(request):
@@ -166,7 +187,8 @@ def index(request):
             output_field=CharField(),
         )
     )
-    has_filtered = everything.filter(llm_relevant=False).exists()
+    meta = _index_meta()
+    has_filtered = meta["has_filtered"]
     # Links the page review judged off-topic are hidden unless asked for.
     resources = (
         everything.filter(llm_relevant=False)
@@ -210,6 +232,6 @@ def index(request):
             categories=list(CATEGORIES),
             kinds=KINDS,
             querystring=params.urlencode(),
-            ranked_at=Resource.objects.aggregate(value=Max("ranked_at"))["value"],
+            ranked_at=meta["ranked_at"],
         ),
     )

@@ -14,13 +14,37 @@ services:
       timeout: 5s
       retries: 5
 
+  db-backup:
+    image: postgres:16-alpine
+    mem_limit: 64m
+    volumes:
+      - postgres_backups:/backups
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-weblog}
+      PGUSER: ${POSTGRES_USER:-weblog}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM;
+      while :; do
+        ts=$$(date -u +%Y%m%dT%H%M%SZ);
+        pg_dump --no-owner --no-acl | gzip -c > "/backups/weblog-$$ts.sql.gz" &&
+          find /backups -name "weblog-*.sql.gz" -mtime +14 -delete;
+        sleep 24h & wait $${!};
+      done'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   web:
+    image: rohans-weblog:latest
     build: .
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              { (while :; do python manage.py sync_briefing_email || true; sleep 15m; done) & } &&
-             exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 60 rohans_weblog.wsgi:application"
+             exec gunicorn --bind 0.0.0.0:8000 --preload --worker-class gthread --workers 3 --threads 2 --timeout 60 --max-requests 1000 --max-requests-jitter 100 rohans_weblog.wsgi:application"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -40,12 +64,19 @@ services:
       GMAIL_USER: ${GMAIL_USER:-}
       GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
       BRIEFINGS_FEED_MIRROR: ${BRIEFINGS_FEED_MIRROR:-true}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; h = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')[0].strip(); urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/about/', headers={'Host': h, 'X-Forwarded-Proto': 'https'}), timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
 
   hackerstack-indexer:
+    image: rohans-weblog:latest
     build: .
     command: python manage.py run_hackerstack_worker
     mem_limit: 256m
@@ -66,7 +97,7 @@ services:
       db:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   nginx:
@@ -83,7 +114,8 @@ services:
       - certbot_conf:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     restart: unless-stopped
 
   certbot:
@@ -97,6 +129,7 @@ services:
 volumes:
   hackerstack_cache:
   postgres_data:
+  postgres_backups:
   static_volume:
   media_volume:
   certbot_conf:

@@ -138,18 +138,6 @@ def search(request):
 
     if query or tag_slug:
         results = search_content(query, tag_slug=tag_slug if tag_slug else None)
-
-        for post in results["posts"]:
-            post.content_html = render_markdown(post.content)
-
-        for til in results["tils"]:
-            til.content_html = render_markdown(til.content)
-
-        for item in results["feed_items"]:
-            item.body_html = render_markdown(item.body)
-
-        for briefing in results.get("briefings", []):
-            briefing.summary_html = render_markdown(briefing.executive_summary_md)
     else:
         results = {
             "posts": BlogPost.objects.none(),
@@ -237,11 +225,10 @@ def tag_detail(request, slug):
 
     briefings = (
         DailyBriefing.objects.filter(is_published=True, tags=tag)
+        .defer("sanitized_html")
         .prefetch_related("tags")
         .order_by("-briefing_date", "-created_date")
     )
-    for briefing in briefings:
-        briefing.summary_html = render_markdown(briefing.executive_summary_md)
 
     return render(
         request,
@@ -263,11 +250,13 @@ def about(request):
 
 def products_list(request):
     """Display product updates from GitHub releases and Gumroad products."""
-    updates = ProductUpdate.objects.filter(is_visible=True).order_by(
-        "-published_at", "-created_date"
+    updates = list(
+        ProductUpdate.objects.filter(is_visible=True).order_by(
+            "-published_at", "-created_date"
+        )
     )
-    github_updates = updates.filter(source="github")
-    gumroad_updates = updates.filter(source="gumroad")
+    github_updates = [u for u in updates if u.source == "github"]
+    gumroad_updates = [u for u in updates if u.source == "gumroad"]
 
     return render(
         request,
@@ -284,6 +273,7 @@ def briefing_archive(request):
     """Display the Daily Intelligence Briefings archive list view."""
     briefings = list(
         DailyBriefing.objects.filter(is_published=True)
+        .defer("sanitized_html")
         .prefetch_related("tags")
         .order_by("-briefing_date", "-created_date")
     )
@@ -355,9 +345,11 @@ def briefing_rss(request):
         description="Autonomous daily synthesis of frontier AI, markets, systems, and global intelligence — Generated with ❤️ from Seattle, WA.",
         language="en-us",
     )
-    briefings = DailyBriefing.objects.filter(is_published=True).order_by(
-        "-briefing_date", "-created_date"
-    )[:20]
+    briefings = (
+        DailyBriefing.objects.filter(is_published=True)
+        .defer("sanitized_html")
+        .order_by("-briefing_date", "-created_date")[:20]
+    )
     for b in briefings:
         item_url = request.build_absolute_uri(b.get_absolute_url())
         summary_html = render_markdown(b.executive_summary_md)
@@ -368,9 +360,11 @@ def briefing_rss(request):
             unique_id=item_url,
             pubdate=b.created_date,
         )
-    return HttpResponse(
+    response = HttpResponse(
         feed.writeString("utf-8"), content_type="application/rss+xml; charset=utf-8"
     )
+    response["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @csrf_exempt
@@ -524,12 +518,34 @@ def intake_api(request):
 
 def digest_index(request):
     """Landing page for the Digests section: one card per series."""
-    series_list = []
-    for series in Series.objects.filter(is_active=True):
-        latest = series.digests.filter(status=Digest.STATUS_PUBLISHED).first()
-        if latest:
-            series_list.append({"series": series, "latest": latest})
-    latest_briefing = DailyBriefing.objects.filter(is_published=True).first()
+    latest_by_series = {}
+    published_digests = (
+        Digest.objects.filter(status=Digest.STATUS_PUBLISHED, series__is_active=True)
+        .select_related("series")
+        .only(
+            "id",
+            "series_id",
+            "digest_date",
+            "created_date",
+            "series__name",
+            "series__slug",
+            "series__description",
+        )
+        .order_by("-digest_date", "-created_date")
+    )
+    for digest in published_digests:
+        if digest.series_id not in latest_by_series:
+            latest_by_series[digest.series_id] = digest
+
+    series_list = sorted(
+        ({"series": d.series, "latest": d} for d in latest_by_series.values()),
+        key=lambda entry: entry["series"].name.lower(),
+    )
+    latest_briefing = (
+        DailyBriefing.objects.filter(is_published=True)
+        .only("briefing_date", "slug")
+        .first()
+    )
     return render(
         request,
         "blog/digest_index.html",

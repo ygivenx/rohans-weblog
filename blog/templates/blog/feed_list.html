@@ -163,25 +163,20 @@
     }, { rootMargin: '-20% 0px -70% 0px' });
     sections.forEach(s => observer.observe(s));
 
-    // Collapse long feed items with expandable toggle
+    // Collapse long feed items with expandable toggle (batched reads -> writes)
     const FEED_COLLAPSE_HEIGHT = 360;
-    const feedContents = document.querySelectorAll('.js-feed-content');
-    feedContents.forEach((content) => {
-        if (content.scrollHeight <= FEED_COLLAPSE_HEIGHT) {
-            return;
-        }
-
+    const collapsible = [...document.querySelectorAll('.js-feed-content')].filter(
+        (content) => content.scrollHeight > FEED_COLLAPSE_HEIGHT
+    );
+    for (const content of collapsible) {
         content.classList.add('feed-content-collapsed');
-        const toggle = content.closest('.post-item').querySelector('.js-feed-expand-toggle');
-        if (!toggle) {
-            return;
-        }
-
+        const toggle = content.closest('.post-item')?.querySelector('.js-feed-expand-toggle');
+        if (!toggle) continue;
         toggle.hidden = false;
         toggle.addEventListener('click', () => {
             const isCollapsed = content.classList.toggle('feed-content-collapsed');
-            toggle.textContent = isCollapsed ? '... more' : 'less';
+            toggle.textContent = isCollapsed ? '… more' : 'less';
         });
-    });
+    }
 </script>
 {% endblock %}

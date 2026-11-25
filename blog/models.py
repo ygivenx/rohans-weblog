@@ -39,6 +39,12 @@ class BlogPost(models.Model):
 
     class Meta:
         ordering = ["-published_date", "-created_date"]
+        indexes = [
+            models.Index(
+                fields=["is_published", "-published_date"],
+                name="blog_post_pub_date_idx",
+            )
+        ]
         verbose_name = "Blog Post"
         verbose_name_plural = "Blog Posts"
 
@@ -123,6 +129,9 @@ class FeedItem(models.Model):
 
     class Meta:
         ordering = ["-created_date"]
+        indexes = [
+            models.Index(fields=["-created_date"], name="blog_feed_created_idx"),
+        ]
         verbose_name = "Feed Item"
         verbose_name_plural = "Feed Items"
 
@@ -368,6 +377,12 @@ class Digest(models.Model):
 
     class Meta:
         ordering = ["-digest_date", "-created_date"]
+        indexes = [
+            models.Index(
+                fields=["series", "status", "-digest_date"],
+                name="blog_digest_ser_st_dt_idx",
+            )
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["series", "external_id"], name="unique_series_external_id"

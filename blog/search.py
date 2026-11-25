@@ -152,12 +152,12 @@ def search_content(query, tag_slug=None):
         [
             "title__icontains",
             "executive_summary_md__icontains",
-            "sanitized_html__icontains",
             "tags__name__icontains",
         ],
     )
     briefings = (
         DailyBriefing.objects.filter(is_published=True)
+        .defer("sanitized_html")
         .filter(briefing_filter)
         .distinct()
         .order_by("-briefing_date", "-created_date")

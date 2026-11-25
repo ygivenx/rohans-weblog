@@ -1,7 +1,9 @@
 """Utility functions for the blog app."""
 
-import markdown
+from functools import lru_cache
+
 import bleach
+import markdown
 from bleach.css_sanitizer import CSSSanitizer
 
 # Pagination constants
@@ -60,51 +62,55 @@ ALLOWED_ATTRIBUTES = {
     "td": ["align"],
 }
 
+_MARKDOWN_EXTENSIONS = [
+    "extra",
+    "toc",
+    "pymdownx.highlight",
+    "pymdownx.superfences",
+]
 
-def render_markdown(content: str) -> str:
-    """
-    Convert markdown content to sanitized HTML.
+_MARKDOWN_EXTENSION_CONFIGS = {
+    "pymdownx.highlight": {
+        "css_class": "codehilite",
+        "use_pygments": True,
+        "guess_lang": True,
+        "noclasses": True,
+        "pygments_style": "monokai",
+    },
+    "pymdownx.superfences": {},
+}
 
-    Uses bleach to sanitize output and prevent XSS attacks.
-    """
-    if not content:
-        return ""
+_CSS_SANITIZER = CSSSanitizer(
+    allowed_css_properties=[
+        "color",
+        "background",
+        "background-color",
+        "font-weight",
+        "font-style",
+        "line-height",
+    ]
+)
 
+_BLEACH_CLEANER = bleach.Cleaner(
+    tags=ALLOWED_TAGS,
+    attributes=ALLOWED_ATTRIBUTES,
+    css_sanitizer=_CSS_SANITIZER,
+    strip=True,
+)
+
+
+@lru_cache(maxsize=512)
+def _render_markdown_cached(content: str) -> str:
     html = markdown.markdown(
         content,
-        extensions=[
-            "extra",
-            "toc",
-            "pymdownx.highlight",
-            "pymdownx.superfences",
-        ],
-        extension_configs={
-            "pymdownx.highlight": {
-                "css_class": "codehilite",
-                "use_pygments": True,
-                "guess_lang": True,
-                "noclasses": True,
-                "pygments_style": "monokai",
-            },
-            "pymdownx.superfences": {},
-        },
+        extensions=_MARKDOWN_EXTENSIONS,
+        extension_configs=_MARKDOWN_EXTENSION_CONFIGS,
     )
+    return _BLEACH_CLEANER.clean(html)
 
-    css_sanitizer = CSSSanitizer(
-        allowed_css_properties=[
-            "color",
-            "background",
-            "background-color",
-            "font-weight",
-            "font-style",
-            "line-height",
-        ]
-    )
 
-    return bleach.clean(
-        html,
-        tags=ALLOWED_TAGS,
-        attributes=ALLOWED_ATTRIBUTES,
-        css_sanitizer=css_sanitizer,
-        strip=True,
-    )
+def render_markdown(content: str) -> str:
+    """Convert markdown content to sanitized HTML, cached by content string."""
+    if not content:
+        return ""
+    return _render_markdown_cached(content)
