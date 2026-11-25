@@ -1,11 +1,13 @@
 import hashlib
 import hmac
+import html
 import json
 import logging
 from datetime import datetime
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+import bleach
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -47,7 +49,8 @@ def _gumroad_summary(product):
     description = product.get("description") or ""
     if not description:
         return ""
-    cleaned = " ".join(description.split())
+    plain = html.unescape(bleach.clean(description, tags=[], strip=True))
+    cleaned = " ".join(plain.split())
     return cleaned[:280] + ("..." if len(cleaned) > 280 else "")
 
 

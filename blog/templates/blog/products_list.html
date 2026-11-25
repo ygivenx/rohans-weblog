@@ -48,7 +48,7 @@
             <div class="post-date">{{ item.published_at|date:"j M Y" }} <span class="meta-subtle">&middot; product</span></div>
             <h3 class="post-title"><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
             {% if item.summary %}
-            <p class="post-excerpt">{{ item.summary|truncatewords:30 }}</p>
+            <p class="post-excerpt">{{ item.summary|striptags|truncatewords:30 }}</p>
             {% endif %}
             <div class="products-cta">
                 {% if item.price %}{{ item.price }} &middot; {% endif %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">Buy now &rarr;</a>

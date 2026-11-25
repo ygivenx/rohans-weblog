@@ -642,6 +642,7 @@
         color: var(--foreground);
         font-size: 0.95em;
         margin-top: 4px;
+        overflow-wrap: anywhere;
     }
 
     .tags {

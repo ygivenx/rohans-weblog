@@ -489,3 +489,16 @@ class MonetizationTests(TestCase):
         self.assertEqual(ok.status_code, 200)
         self.assertEqual(ok.json()["created"], 1)
         mock_sync.assert_called_once()
+
+    def test_gumroad_summary_strips_html_embeds(self):
+        from .product_updates import _gumroad_summary
+
+        raw = (
+            '<div class="tiptap__raw" data-title="FreeWispr 1.3.0">'
+            '<div><iframe src="https://youtube.com/embed/abc"></iframe></div></div>'
+            "<p>Fast local voice dictation &amp; transcription for macOS.</p>"
+        )
+        self.assertEqual(
+            _gumroad_summary({"description": raw}),
+            "Fast local voice dictation & transcription for macOS.",
+        )
