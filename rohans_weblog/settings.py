@@ -48,7 +48,7 @@ BRIEFING_EMAIL_SUBJECT = os.environ.get(
     "BRIEFING_EMAIL_SUBJECT", "BRIEFING_AUTO_PUBLISH"
 ).strip()
 BRIEFINGS_FEED_MIRROR = (
-    os.environ.get("BRIEFINGS_FEED_MIRROR", "true").strip().lower() == "true"
+    os.environ.get("BRIEFINGS_FEED_MIRROR", "false").strip().lower() == "true"
 )
 
 # Allowed hosts - defaults to localhost for development

@@ -249,6 +249,10 @@ class DailyBriefingTests(TestCase):
         self.assertIn("card-share-btn", briefing.sanitized_html)
         self.assertIsNotNone(briefing.mirrored_feed_item)
 
+        feed_resp = self.client.get(reverse("blog:index"))
+        self.assertEqual(feed_resp.status_code, 200)
+        self.assertNotContains(feed_resp, briefing.title)
+
     def test_sanitizer_keeps_code_after_gmail_redirect(self):
         raw = (
             "<script>const el = document.getElementById("

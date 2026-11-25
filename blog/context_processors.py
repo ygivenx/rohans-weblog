@@ -21,7 +21,7 @@ def _compute_all_tags():
     queries = (
         BlogPost.objects.filter(is_published=True, tags__isnull=False),
         TIL.objects.filter(tags__isnull=False),
-        FeedItem.objects.filter(tags__isnull=False),
+        FeedItem.objects.filter(daily_briefing__isnull=True, tags__isnull=False),
         DailyBriefing.objects.filter(is_published=True, tags__isnull=False),
     )
     for qs in queries:

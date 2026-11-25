@@ -63,7 +63,7 @@ services:
       GUMROAD_WEBHOOK_TOKEN: ${GUMROAD_WEBHOOK_TOKEN}
       GMAIL_USER: ${GMAIL_USER:-}
       GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
-      BRIEFINGS_FEED_MIRROR: ${BRIEFINGS_FEED_MIRROR:-true}
+      BRIEFINGS_FEED_MIRROR: ${BRIEFINGS_FEED_MIRROR:-false}
     healthcheck:
       test: ["CMD", "python", "-c", "import os, urllib.request; h = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')[0].strip(); urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/about/', headers={'Host': h, 'X-Forwarded-Proto': 'https'}), timeout=5)"]
       interval: 15s

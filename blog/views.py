@@ -36,7 +36,13 @@ from .product_updates import (
     sync_gumroad_products,
 )
 from .search import search_content
-from .utils import render_markdown, POSTS_PER_PAGE, TILS_PER_PAGE, BOOKMARKS_PER_PAGE
+from .utils import (
+    render_markdown,
+    POSTS_PER_PAGE,
+    TILS_PER_PAGE,
+    BOOKMARKS_PER_PAGE,
+    FEED_PER_PAGE,
+)
 
 
 def post_list(request):
@@ -161,10 +167,18 @@ def search(request):
 
 
 def feed_list(request):
-    """List all feed items grouped by month with timeline navigation."""
+    """List feed items (excluding daily briefings), paginated and grouped by month."""
     from itertools import groupby
 
-    items = list(FeedItem.objects.prefetch_related("tags").order_by("-created_date"))
+    qs = (
+        FeedItem.objects.filter(daily_briefing__isnull=True)
+        .prefetch_related("tags")
+        .order_by("-created_date")
+    )
+    paginator = Paginator(qs, FEED_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    items = list(page_obj.object_list)
     for item in items:
         item.body_html = render_markdown(item.body)
 
@@ -184,6 +198,7 @@ def feed_list(request):
         "blog/feed_list.html",
         {
             "grouped": grouped,
+            "page_obj": page_obj,
         },
     )
 
@@ -215,7 +230,7 @@ def tag_detail(request, slug):
         TIL.objects.filter(tags=tag).prefetch_related("tags").order_by("-created_date")
     )
     feed_items = (
-        FeedItem.objects.filter(tags=tag)
+        FeedItem.objects.filter(tags=tag, daily_briefing__isnull=True)
         .prefetch_related("tags")
         .order_by("-created_date")
     )
