@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django import forms
+from django.http import HttpResponse
 from martor.widgets import AdminMartorWidget
 from .briefings import (
     extract_briefing_metadata,
@@ -22,6 +23,8 @@ from .models import (
     DailyBriefing,
     Digest,
     Series,
+    Sponsor,
+    Subscriber,
 )
 
 
@@ -412,3 +415,42 @@ class DigestAdmin(admin.ModelAdmin):
             publish_digest(obj)
         elif prior == Digest.STATUS_PUBLISHED:
             unpublish_digest(obj)
+
+
+@admin.action(description="Export selected subscribers as CSV")
+def export_subscribers_csv(modeladmin, request, queryset):
+    import csv
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="subscribers.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["email", "source", "is_active", "created_date"])
+    for sub in queryset:
+        writer.writerow(
+            [sub.email, sub.source, sub.is_active, sub.created_date.isoformat()]
+        )
+    return response
+
+
+@admin.register(Subscriber)
+class SubscriberAdmin(admin.ModelAdmin):
+    list_display = ["email", "source", "is_active", "created_date"]
+    list_filter = ["is_active", "source"]
+    search_fields = ["email"]
+    readonly_fields = ["created_date"]
+    actions = [export_subscribers_csv]
+
+
+@admin.register(Sponsor)
+class SponsorAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "placement",
+        "is_active",
+        "start_date",
+        "end_date",
+        "click_count",
+    ]
+    list_filter = ["is_active", "placement"]
+    search_fields = ["name", "tagline", "url"]
+    readonly_fields = ["click_count", "created_date"]

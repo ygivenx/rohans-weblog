@@ -1,0 +1,49 @@
+<aside class="ui-surface subscribe-box" aria-label="Email updates">
+    <div class="subscribe-title">{{ subscribe_title|default:"Get new digests & top AI engineering links by email" }}</div>
+    <p class="subscribe-copy">{{ subscribe_copy|default:"No spam, no tracking pixels. Just high-signal dispatches when they publish." }}</p>
+    <form method="post" action="{% url 'blog:subscribe' %}" class="subscribe-row js-subscribe-form">
+        {% csrf_token %}
+        <input type="hidden" name="source" value="{{ subscribe_source|default:'site' }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true">
+        <input type="email" name="email" required placeholder="you@domain.com" class="ui-input" aria-label="Email address">
+        <button type="submit" class="ui-btn ui-btn-primary">Subscribe</button>
+    </form>
+    <p class="subscribe-status js-subscribe-status" role="status" aria-live="polite"
+       {% if not request.GET.subscribed and not request.GET.subscribe_error %}hidden{% endif %}>
+        {% if request.GET.subscribed %}You're subscribed.{% elif request.GET.subscribe_error %}Please enter a valid email address.{% endif %}
+    </p>
+</aside>
+<script>
+(() => {
+    if (window.__dgSubscribeBound) return;
+    window.__dgSubscribeBound = true;
+    document.addEventListener('submit', async (ev) => {
+        const form = ev.target.closest('.js-subscribe-form');
+        if (!form) return;
+        ev.preventDefault();
+        const box = form.closest('.subscribe-box');
+        const status = box?.querySelector('.js-subscribe-status');
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = true;
+        try {
+            const resp = await fetch(form.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json' },
+                body: new FormData(form),
+            });
+            const data = await resp.json();
+            if (status) {
+                status.hidden = false;
+                status.classList.toggle('is-error', !data.ok);
+                status.textContent = data.ok ? data.message : (data.error || 'Subscription failed.');
+            }
+            if (data.ok) form.reset();
+        } catch {
+            form.submit();
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    });
+})();
+</script>

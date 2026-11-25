@@ -12,7 +12,6 @@ _guard = import_module(
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("hackerstack", "0004_resource_fetch_status_resource_fetched_at_and_more"),
     ]

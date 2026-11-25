@@ -107,6 +107,8 @@
     </div>
 </div>
 
+{% include 'blog/_sponsor_box.html' %}
+
 {% if latest_briefing %}
 <section class="ui-card ui-card-accent briefing-hero">
     <div class="briefing-kicker">Latest Edition &middot; {{ latest_briefing.briefing_date|date:"l, F j, Y" }}</div>
@@ -168,4 +170,6 @@
     {% endfor %}
 </ul>
 {% endif %}
+
+{% include 'blog/_subscribe_box.html' with subscribe_source="briefings" subscribe_title="Get the Daily Intelligence Briefing by email" subscribe_copy="One morning dispatch covering frontier AI, markets, and systems signals." %}
 {% endblock %}

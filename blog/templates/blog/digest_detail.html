@@ -33,6 +33,10 @@
     {% endif %}
 </article>
 
+{% include 'blog/_sponsor_box.html' %}
+{% include 'blog/_product_callout.html' %}
+{% include 'blog/_subscribe_box.html' with subscribe_source="digest_detail" subscribe_title="Enjoyed this digest? Get future editions by email" %}
+
 <p class="back-link"><a href="{{ digest.series.get_absolute_url }}">&larr; Back to {{ digest.series.name }}</a></p>
 
 <script defer src="{% static 'blog/digest_motion.js' %}"></script>

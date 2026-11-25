@@ -12,7 +12,6 @@ _guard = import_module(
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         (
             "hackerstack",

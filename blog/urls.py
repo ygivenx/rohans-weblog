@@ -27,6 +27,8 @@ urlpatterns = [
     path("tags/<slug:slug>/", views.tag_detail, name="tag_detail"),
     path("search/", views.search, name="search"),
     path("about/", views.about, name="about"),
+    path("subscribe/", views.subscribe, name="subscribe"),
+    path("go/sponsor/<int:pk>/", views.sponsor_click, name="sponsor_click"),
     path("webhooks/github/", views.github_webhook, name="github_webhook"),
     path("webhooks/gumroad/", views.gumroad_webhook, name="gumroad_webhook"),
 ]

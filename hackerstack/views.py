@@ -12,6 +12,8 @@ from django.utils import timezone
 from django.utils.feedgenerator import Rss201rev2Feed
 from django.utils.html import escape
 
+from blog.models import Sponsor
+
 from .models import CATEGORIES, Evidence, KINDS, Resource
 from .search import search
 
@@ -134,6 +136,7 @@ def weekly(request, week=None):
             category=category,
             topic_counts=topic_counts,
             querystring=params.urlencode(),
+            sponsor=Sponsor.active_for(Sponsor.PLACEMENT_HACKERSTACK),
         ),
     )
 

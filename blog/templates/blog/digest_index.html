@@ -6,6 +6,8 @@
 <h2>Digests</h2>
 <p class="page-intro">Recurring roundups, compiled by my agents and reviewed before they go up.</p>
 
+{% include 'blog/_sponsor_box.html' %}
+
 <ul class="post-list">
     {% if latest_briefing %}
     <li class="post-item">
@@ -22,4 +24,6 @@
     </li>
     {% endfor %}
 </ul>
+
+{% include 'blog/_subscribe_box.html' with subscribe_source="digests" subscribe_title="Get new digests in your inbox" subscribe_copy="Short, high-signal roundups on AI, markets, and engineering — no spam." %}
 {% endblock %}

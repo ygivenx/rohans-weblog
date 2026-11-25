@@ -4,16 +4,21 @@ import json
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
+from django.core.validators import validate_email
+from django.db.models import F
 from django.http import (
     HttpResponse,
     JsonResponse,
     HttpResponseBadRequest,
     HttpResponseForbidden,
 )
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.utils.feedgenerator import Rss201rev2Feed
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -29,6 +34,8 @@ from .models import (
     DailyBriefing,
     Digest,
     Series,
+    Sponsor,
+    Subscriber,
 )
 from .product_updates import (
     verify_github_signature,
@@ -66,9 +73,32 @@ def post_list(request):
     )
 
 
+def _featured_product(tags=None):
+    """Return a visible Gumroad product matching any tag name, or the latest one."""
+    products = cache.get("blog:gumroad_products")
+    if products is None:
+        products = list(
+            ProductUpdate.objects.filter(source="gumroad", is_visible=True).order_by(
+                "-published_at", "-created_date"
+            )
+        )
+        cache.set("blog:gumroad_products", products, 300)
+    if not products:
+        return None
+    if tags:
+        tag_terms = [t.name.lower() for t in tags if t.name]
+        for product in products:
+            haystack = f"{product.title} {product.summary}".lower()
+            if any(term in haystack for term in tag_terms):
+                return product
+    return products[0]
+
+
 def post_detail(request, slug):
     """Display a single blog post."""
-    post = get_object_or_404(BlogPost, slug=slug, is_published=True)
+    post = get_object_or_404(
+        BlogPost.objects.prefetch_related("tags"), slug=slug, is_published=True
+    )
     post.content_html = render_markdown(post.content)
 
     return render(
@@ -76,6 +106,7 @@ def post_detail(request, slug):
         "blog/post_detail.html",
         {
             "post": post,
+            "featured_product": _featured_product(post.tags.all()),
         },
     )
 
@@ -99,7 +130,7 @@ def til_list(request):
 
 def til_detail(request, slug):
     """Display a single TIL entry."""
-    til = get_object_or_404(TIL, slug=slug)
+    til = get_object_or_404(TIL.objects.prefetch_related("tags"), slug=slug)
     til.content_html = render_markdown(til.content)
 
     return render(
@@ -107,6 +138,7 @@ def til_detail(request, slug):
         "blog/til_detail.html",
         {
             "til": til,
+            "featured_product": _featured_product(til.tags.all()),
         },
     )
 
@@ -305,6 +337,7 @@ def briefing_archive(request):
             "latest_briefing": latest_briefing,
             "archive_briefings": archive_briefings,
             "briefings": briefings,
+            "sponsor": Sponsor.active_for(Sponsor.PLACEMENT_DIGESTS),
         },
     )
 
@@ -564,7 +597,11 @@ def digest_index(request):
     return render(
         request,
         "blog/digest_index.html",
-        {"series_list": series_list, "latest_briefing": latest_briefing},
+        {
+            "series_list": series_list,
+            "latest_briefing": latest_briefing,
+            "sponsor": Sponsor.active_for(Sponsor.PLACEMENT_DIGESTS),
+        },
     )
 
 
@@ -591,5 +628,59 @@ def digest_detail(request, series_slug, slug):
     return render(
         request,
         "blog/digest_detail.html",
-        {"digest": digest, "content_html": render_markdown(digest.body_md)},
+        {
+            "digest": digest,
+            "content_html": render_markdown(digest.body_md),
+            "sponsor": Sponsor.active_for(Sponsor.PLACEMENT_DIGESTS),
+            "featured_product": _featured_product(digest.tags.all()),
+        },
     )
+
+
+@require_POST
+def subscribe(request):
+    """Capture an email subscriber (supports JSON fetch and standard POST)."""
+    wants_json = "application/json" in request.headers.get("Accept", "")
+    # Honeypot: silently succeed for bots filling hidden field
+    if request.POST.get("website", "").strip():
+        if wants_json:
+            return JsonResponse({"ok": True, "message": "You're subscribed."})
+        return redirect(request.META.get("HTTP_REFERER") or "/")
+
+    email = request.POST.get("email", "").strip().lower()
+    source = request.POST.get("source", "").strip()[:40]
+    next_url = request.POST.get("next", "").strip()
+    if not next_url or not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = "/"
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        if wants_json:
+            return JsonResponse(
+                {"ok": False, "error": "Please enter a valid email address."},
+                status=400,
+            )
+        sep = "&" if "?" in next_url else "?"
+        return redirect(f"{next_url}{sep}subscribe_error=invalid")
+
+    sub, created = Subscriber.objects.get_or_create(
+        email=email, defaults={"source": source, "is_active": True}
+    )
+    if not created and not sub.is_active:
+        sub.is_active = True
+        sub.save(update_fields=["is_active"])
+
+    if wants_json:
+        return JsonResponse({"ok": True, "message": "You're subscribed."})
+    sep = "&" if "?" in next_url else "?"
+    return redirect(f"{next_url}{sep}subscribed=1")
+
+
+def sponsor_click(request, pk):
+    """Increment sponsor click counter and redirect to sponsor destination."""
+    sponsor = get_object_or_404(Sponsor, pk=pk, is_active=True)
+    Sponsor.objects.filter(pk=sponsor.pk).update(click_count=F("click_count") + 1)
+    return redirect(sponsor.url)

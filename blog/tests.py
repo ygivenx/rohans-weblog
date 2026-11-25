@@ -393,3 +393,85 @@ class DailyBriefingTests(TestCase):
         stats = sync_briefing_from_gmail()
         self.assertEqual(stats["created"], 1)
         self.assertTrue(DailyBriefing.objects.filter(slug="2026-10-31").exists())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class MonetizationTests(TestCase):
+    def test_subscribe_json_and_honeypot(self):
+        resp = self.client.post(
+            reverse("blog:subscribe"),
+            {"email": "Reader@Example.com", "source": "digests"},
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["ok"])
+        from .models import Subscriber
+
+        self.assertTrue(
+            Subscriber.objects.filter(
+                email="reader@example.com", source="digests"
+            ).exists()
+        )
+
+        # Invalid email returns 400
+        bad = self.client.post(
+            reverse("blog:subscribe"),
+            {"email": "not-an-email"},
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(bad.status_code, 400)
+
+        # Honeypot silently succeeds without creating a subscriber
+        bot = self.client.post(
+            reverse("blog:subscribe"),
+            {"email": "bot@spam.example", "website": "https://spam.example"},
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(bot.status_code, 200)
+        self.assertFalse(Subscriber.objects.filter(email="bot@spam.example").exists())
+
+    def test_sponsor_slot_and_click_tracking(self):
+        from .models import Sponsor
+
+        sponsor = Sponsor.objects.create(
+            name="Acme AI",
+            tagline="Fast evals for production agents.",
+            url="https://acme.example",
+            cta_label="Try Acme",
+            placement=Sponsor.PLACEMENT_DIGESTS,
+            is_active=True,
+        )
+        resp = self.client.get(reverse("blog:digest_index"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Acme AI")
+        self.assertContains(resp, "Fast evals for production agents.")
+
+        click = self.client.get(reverse("blog:sponsor_click", args=[sponsor.pk]))
+        self.assertEqual(click.status_code, 302)
+        self.assertEqual(click["Location"], "https://acme.example")
+        sponsor.refresh_from_db()
+        self.assertEqual(sponsor.click_count, 1)
+
+    def test_contextual_product_callout_on_post_detail(self):
+        from .models import BlogPost
+
+        ProductUpdate.objects.create(
+            source="gumroad",
+            kind="product",
+            external_id="gum-1",
+            title="Agent Eval Playbook",
+            summary="Practical evaluation loops for LLM systems.",
+            url="https://gumroad.example/playbook",
+            price="$29",
+            is_visible=True,
+        )
+        post = BlogPost.objects.create(
+            title="Shipping reliable agents",
+            slug="shipping-reliable-agents",
+            content="Hello world.",
+            is_published=True,
+        )
+        resp = self.client.get(reverse("blog:post_detail", args=[post.slug]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Agent Eval Playbook")
+        self.assertContains(resp, "Get it on Gumroad")

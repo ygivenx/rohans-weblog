@@ -1,0 +1,11 @@
+{% if sponsor %}
+<aside class="ui-surface sponsor-box" aria-label="Sponsor">
+    <div>
+        <div class="sponsor-kicker">Sponsored &middot; {{ sponsor.name }}</div>
+        <div class="sponsor-copy">{{ sponsor.tagline }}</div>
+    </div>
+    <a href="{% url 'blog:sponsor_click' sponsor.pk %}" class="ui-btn ui-btn-sm" rel="noopener noreferrer sponsored" target="_blank">
+        {{ sponsor.cta_label }} &nearr;
+    </a>
+</aside>
+{% endif %}

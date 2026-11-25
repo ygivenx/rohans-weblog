@@ -27,6 +27,8 @@
     </div>
   </div>
 
+  {% include 'blog/_sponsor_box.html' %}
+
   {% if topic_counts %}
   <nav class="hs-topics" aria-label="Filter weekly stories by topic">
     <a href="{% url 'hackerstack:weekly_issue' week_code %}" {% if not category %}aria-current="page"{% endif %}>All topics<span>{{ total_count }}</span></a>
@@ -79,5 +81,6 @@
     {% if page.has_next %}<a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page.next_page_number }}">Next →</a>{% endif %}
   </nav>
   {% endif %}
+  {% include 'blog/_subscribe_box.html' with subscribe_source="hackerstack_weekly" subscribe_title="Get Top HN This Week in your inbox" subscribe_copy="The highest-signal AI and software engineering stories from Hacker News, once a week." %}
 </div>
 {% endblock %}

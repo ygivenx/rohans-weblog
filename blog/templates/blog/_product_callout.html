@@ -1,0 +1,14 @@
+{% if featured_product %}
+<aside class="ui-card ui-card-accent product-callout" aria-label="Featured product">
+    <div class="product-callout-body">
+        <div class="product-callout-kicker">From Products{% if featured_product.price %} &middot; {{ featured_product.price }}{% endif %}</div>
+        <div class="product-callout-title">{{ featured_product.title }}</div>
+        {% if featured_product.summary %}
+        <div class="product-callout-desc">{{ featured_product.summary|truncatewords:26 }}</div>
+        {% endif %}
+    </div>
+    <a href="{{ featured_product.url }}" class="ui-btn ui-btn-primary ui-btn-sm" target="_blank" rel="noopener noreferrer">
+        Get it on Gumroad &rarr;
+    </a>
+</aside>
+{% endif %}

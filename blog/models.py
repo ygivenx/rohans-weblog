@@ -416,3 +416,75 @@ class Digest(models.Model):
             "blog:digest_detail",
             kwargs={"series_slug": self.series.slug, "slug": self.slug},
         )
+
+
+class Subscriber(models.Model):
+    """Email subscriber captured from Digests, Briefings, or HackerStack Weekly."""
+
+    email = models.EmailField(unique=True)
+    source = models.CharField(max_length=40, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_date"]
+
+    def __str__(self):
+        return self.email
+
+
+class Sponsor(models.Model):
+    """Native text-only sponsor slot managed in Django Admin."""
+
+    PLACEMENT_ALL = "all"
+    PLACEMENT_HACKERSTACK = "hackerstack"
+    PLACEMENT_DIGESTS = "digests"
+    PLACEMENT_CHOICES = [
+        (PLACEMENT_ALL, "All placements"),
+        (PLACEMENT_HACKERSTACK, "HackerStack Weekly"),
+        (PLACEMENT_DIGESTS, "Digests & Briefings"),
+    ]
+
+    name = models.CharField(max_length=120)
+    tagline = models.CharField(max_length=240)
+    url = models.URLField()
+    cta_label = models.CharField(max_length=40, default="Learn more")
+    placement = models.CharField(
+        max_length=20, choices=PLACEMENT_CHOICES, default=PLACEMENT_ALL, db_index=True
+    )
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    click_count = models.PositiveIntegerField(default=0, editable=False)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_date"]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_placement_display()})"
+
+    @classmethod
+    def active_for(cls, placement):
+        """Return one active sponsor for the given placement (cached 5m)."""
+        from django.core.cache import cache
+
+        key = f"blog:sponsor:{placement}"
+        cached = cache.get(key)
+        if cached is not None:
+            return cached or None
+
+        today = timezone.localdate()
+        sponsor = (
+            cls.objects.filter(
+                is_active=True,
+                placement__in=[cls.PLACEMENT_ALL, placement],
+            )
+            .filter(
+                models.Q(start_date__isnull=True) | models.Q(start_date__lte=today),
+                models.Q(end_date__isnull=True) | models.Q(end_date__gte=today),
+            )
+            .first()
+        )
+        cache.set(key, sponsor or False, 300)
+        return sponsor

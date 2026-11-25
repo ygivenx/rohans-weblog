@@ -20,7 +20,6 @@ def create_sqlite_index(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("hackerstack", "0003_backfillwindow"),
     ]
