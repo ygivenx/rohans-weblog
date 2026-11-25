@@ -43,7 +43,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             { (while :; do python manage.py sync_briefing_email || true; sleep 15m; done) & } &&
+             { (while :; do python manage.py sync_briefing_email || true; python manage.py sync_gumroad_products || true; sleep 15m; done) & } &&
              exec gunicorn --bind 0.0.0.0:8000 --preload --worker-class gthread --workers 3 --threads 2 --timeout 60 --max-requests 1000 --max-requests-jitter 100 rohans_weblog.wsgi:application"
     volumes:
       - static_volume:/app/staticfiles

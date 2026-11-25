@@ -467,7 +467,8 @@ def gumroad_webhook(request):
     """
     expected_token = settings.GUMROAD_WEBHOOK_TOKEN
     provided = (
-        request.POST.get("token")
+        request.GET.get("token")
+        or request.POST.get("token")
         or request.POST.get("password")
         or request.headers.get("X-Gumroad-Token", "")
     )

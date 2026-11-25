@@ -1,8 +1,9 @@
 import hashlib
 import hmac
 import json
+import logging
 from datetime import datetime
-from urllib.parse import urlencode
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from django.conf import settings
@@ -10,6 +11,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import FeedItem, ProductUpdate, Tag
+
+logger = logging.getLogger(__name__)
 
 
 def verify_github_signature(raw_body, signature_header, secret):
@@ -175,11 +178,27 @@ def upsert_github_release(payload):
 
 
 def _fetch_gumroad_products(access_token):
-    params = urlencode({"access_token": access_token})
-    url = f"https://api.gumroad.com/v2/products?{params}"
-    req = Request(url, headers={"User-Agent": "rohans-weblog/1.0"})
-    with urlopen(req, timeout=20) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
+    url = "https://api.gumroad.com/v2/products"
+    req = Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "User-Agent": "rohans-weblog/1.0",
+        },
+    )
+    try:
+        with urlopen(req, timeout=20) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")[:300]
+        logger.warning("Gumroad API HTTP %s: %s", exc.code, body)
+        raise
+    except URLError as exc:
+        logger.warning("Gumroad API connection error: %s", exc)
+        raise
+    if payload.get("success") is False:
+        logger.warning("Gumroad API returned failure: %s", payload.get("message", ""))
+        return []
     return payload.get("products") or []
 
 

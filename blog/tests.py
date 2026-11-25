@@ -475,3 +475,17 @@ class MonetizationTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Agent Eval Playbook")
         self.assertContains(resp, "Get it on Gumroad")
+
+    @override_settings(GUMROAD_WEBHOOK_TOKEN="secret-tok")
+    @patch("blog.views.sync_gumroad_products")
+    def test_gumroad_webhook_accepts_query_token(self, mock_sync):
+        mock_sync.return_value = {"created": 1, "updated": 0, "total": 1}
+        url = reverse("blog:gumroad_webhook")
+
+        forbidden = self.client.post(f"{url}?token=wrong")
+        self.assertEqual(forbidden.status_code, 403)
+
+        ok = self.client.post(f"{url}?token=secret-tok", {"sale_id": "123"})
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ok.json()["created"], 1)
+        mock_sync.assert_called_once()
