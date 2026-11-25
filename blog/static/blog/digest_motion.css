@@ -1,0 +1,169 @@
+/* Motion layer for digests. Pure progressive enhancement: hidden/animated
+   states are opted in by digest_motion.js, so the page reads normally without
+   JS, in print, and under prefers-reduced-motion. Uses shared tokens from site.css. */
+
+:root {
+    --dg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Reading progress */
+.dg-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    z-index: 50;
+    pointer-events: none;
+}
+
+@supports (animation-timeline: scroll()) {
+    .dg-progress {
+        animation: dg-progress linear both;
+        animation-timeline: scroll(root);
+    }
+    @keyframes dg-progress {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+    }
+}
+
+/* Ticker tape */
+.dg-ticker {
+    margin: 18px 0;
+    border-block: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.72em;
+    line-height: 1.4;
+}
+
+.dg-ticker-label {
+    padding-top: 6px;
+    color: var(--muted-foreground);
+    font-size: 0.9em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.dg-ticker-viewport {
+    overflow: hidden;
+    padding: 6px 0 8px;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.dg-ticker-track {
+    display: flex;
+    width: max-content;
+    animation: dg-marquee var(--dg-ticker-duration, 40s) linear infinite;
+}
+
+.dg-ticker:hover .dg-ticker-track,
+.dg-ticker:focus-within .dg-ticker-track {
+    animation-play-state: paused;
+}
+
+.dg-ticker-group {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.dg-tick {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5em;
+    padding: 0 1.1em;
+    white-space: nowrap;
+    border-right: 1px solid var(--border-soft);
+}
+
+.dg-tick-name { font-weight: 500; }
+.dg-tick-value { color: var(--muted-foreground); }
+.dg-tick-chg.dg-up { color: var(--positive); }
+.dg-tick-chg.dg-down { color: var(--negative); }
+
+@keyframes dg-marquee {
+    to { transform: translateX(-50%); }
+}
+
+/* Scroll reveal */
+.dg-reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.6s var(--dg-ease), transform 0.6s var(--dg-ease);
+}
+
+.dg-reveal.dg-in {
+    opacity: 1;
+    transform: none;
+}
+
+/* Section heading underline draws in */
+.content h2.dg-reveal::after {
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    transition: transform 0.7s var(--dg-ease) 0.15s;
+}
+
+.content h2.dg-reveal.dg-in::after {
+    transform: scaleX(1);
+}
+
+/* "Why it matters" accent bar draws down the quote */
+.content blockquote.dg-reveal {
+    position: relative;
+}
+
+.content blockquote.dg-reveal::before {
+    content: "";
+    position: absolute;
+    left: -3px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--primary);
+    transform: scaleY(0);
+    transform-origin: 50% 0;
+    transition: transform 0.8s var(--dg-ease) 0.2s;
+}
+
+.content blockquote.dg-reveal.dg-in::before {
+    transform: scaleY(1);
+}
+
+/* "Go deeper" disclosure */
+.content details {
+    overflow: hidden;
+}
+
+.content details > summary {
+    cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce), print {
+    .dg-progress,
+    .dg-ticker-group[aria-hidden="true"] {
+        display: none;
+    }
+    .dg-ticker-track {
+        animation: none;
+        width: auto;
+        flex-wrap: wrap;
+    }
+    .dg-ticker-group {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+    .dg-ticker-viewport {
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+}
+
+@media print {
+    .dg-reveal {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}

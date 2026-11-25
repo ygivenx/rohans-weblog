@@ -23,16 +23,16 @@
     .about-avatar {
         width: 128px;
         height: 128px;
-        border-radius: 10px;
+        border-radius: var(--radius-lg);
         object-fit: cover;
         border: 1px solid var(--border-soft);
     }
     .about-meta {
-        font-family: 'Manrope', sans-serif;
+        font-family: var(--font-sans);
         font-size: 0.78em;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--muted-2);
+        color: var(--subtle-foreground);
         margin-top: 10px;
     }
     .about-section {
@@ -41,12 +41,12 @@
         border-top: 1px solid var(--border-soft);
     }
     .about-section h3 {
-        font-family: 'Manrope', sans-serif;
-        font-size: 0.86em;
+        font-family: var(--font-sans);
+        font-size: 0.8em;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: var(--muted-2);
+        color: var(--subtle-foreground);
         margin-bottom: 12px;
     }
     .about-list {
@@ -62,18 +62,18 @@
         border-bottom: 0;
     }
     .about-list .label {
-        font-family: 'Manrope', sans-serif;
+        font-family: var(--font-sans);
         font-size: 0.83em;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        color: var(--muted-2);
+        color: var(--subtle-foreground);
         margin-right: 8px;
     }
     .about-closing {
         margin-top: 24px;
         padding-top: 14px;
         border-top: 1px solid var(--border-soft);
-        color: var(--muted);
+        color: var(--muted-foreground);
     }
     @media (max-width: 640px) {
         .about-grid {

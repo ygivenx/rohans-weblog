@@ -4,64 +4,55 @@
 
 {% block extra_css %}
 <style>
-    .briefings-intro {
-        color: var(--muted);
-        margin-bottom: 14px;
-    }
     .briefings-utility-bar {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
         align-items: center;
         justify-content: space-between;
-        padding: 10px 12px;
-        border: 1px solid var(--border-soft);
-        border-radius: 4px;
-        background: var(--table-zebra);
-        font-family: 'Manrope', sans-serif;
+        font-family: var(--font-sans);
         font-size: 0.78em;
         margin-bottom: 24px;
     }
+    .briefings-utility-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
     .briefings-utility-links a {
         font-weight: 600;
-        margin-right: 12px;
     }
     .briefing-hero {
-        border: 1px solid var(--border);
-        border-top: 3px solid var(--link);
-        border-radius: 4px;
-        padding: 18px;
         margin-bottom: 30px;
-        background: var(--bg);
     }
     .briefing-kicker {
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-mono);
         font-size: 0.72em;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: var(--link);
+        color: var(--primary);
         font-weight: 600;
         margin-bottom: 4px;
     }
     .briefing-hero-title {
-        font-family: 'Manrope', sans-serif;
+        font-family: var(--font-sans);
         font-size: 1.35em;
         font-weight: 700;
         line-height: 1.25;
         margin-bottom: 6px;
     }
     .briefing-hero-title a {
-        color: var(--text);
+        color: var(--foreground);
         text-decoration: none;
     }
     .briefing-hero-title a:hover {
-        color: var(--link);
+        color: var(--primary);
         text-decoration: underline;
     }
     .briefing-meta {
-        font-family: 'Manrope', sans-serif;
+        font-family: var(--font-sans);
         font-size: 0.76em;
-        color: var(--muted-2);
+        color: var(--subtle-foreground);
         text-transform: uppercase;
         letter-spacing: 0.04em;
         margin-bottom: 12px;
@@ -72,20 +63,6 @@
         gap: 10px;
         margin: 14px 0;
     }
-    .briefing-btn-primary {
-        display: inline-block;
-        background: var(--link);
-        color: #ffffff !important;
-        text-decoration: none !important;
-        font-family: 'Manrope', sans-serif;
-        font-size: 0.82em;
-        font-weight: 700;
-        padding: 7px 14px;
-        border-radius: 4px;
-    }
-    .briefing-btn-primary:hover {
-        background: var(--link-hover);
-    }
     .briefing-metrics-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -93,21 +70,18 @@
         margin: 14px 0;
     }
     .briefing-metric-box {
-        border: 1px solid var(--border-soft);
-        border-radius: 3px;
         padding: 8px 10px;
-        background: var(--table-zebra);
     }
     .briefing-metric-val {
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-mono);
         font-size: 0.92em;
         font-weight: 700;
-        color: var(--text);
+        color: var(--foreground);
     }
     .briefing-metric-desc {
         font-size: 0.74em;
         line-height: 1.35;
-        color: var(--muted);
+        color: var(--muted-foreground);
         margin-top: 2px;
     }
     .briefing-summary {
@@ -119,13 +93,13 @@
 
 {% block content %}
 <h2>Daily Intelligence Briefings</h2>
-<p class="briefings-intro">
+<p class="page-intro">
     Executive daily synthesis of frontier AI, volatile macro markets, high-performance engineering systems, and global signals — produced autonomously by my Gemini agent and generated with ❤️ from Seattle, WA.
 </p>
 
-<div class="briefings-utility-bar">
+<div class="ui-surface briefings-utility-bar">
     <div>
-        <strong>⚡ Personal Daily Hub:</strong> Bookmark <a href="{% url 'blog:briefing_latest' %}"><code>/briefing/</code></a> to always open today's live interactive edition &amp; audio player.
+        <strong>Personal Daily Hub:</strong> Bookmark <a href="{% url 'blog:briefing_latest' %}"><code>/briefing/</code></a> to open today's live interactive edition &amp; audio player.
     </div>
     <div class="briefings-utility-links">
         <a href="{% url 'blog:briefing_latest' %}">Today's Live Briefing &rarr;</a>
@@ -134,7 +108,7 @@
 </div>
 
 {% if latest_briefing %}
-<section class="briefing-hero">
+<section class="ui-card ui-card-accent briefing-hero">
     <div class="briefing-kicker">Latest Edition &middot; {{ latest_briefing.briefing_date|date:"l, F j, Y" }}</div>
     <h3 class="briefing-hero-title">
         <a href="{% url 'blog:briefing_detail' latest_briefing.slug %}">{{ latest_briefing.title }}</a>
@@ -146,15 +120,15 @@
     </div>
 
     <div class="briefing-cta-row">
-        <a href="{% url 'blog:briefing_detail' latest_briefing.slug %}" class="briefing-btn-primary">
-            🎙️ Open Interactive Briefing &amp; Voice Studio ({{ latest_briefing.signal_count }} Signals) &rarr;
+        <a href="{% url 'blog:briefing_detail' latest_briefing.slug %}" class="ui-btn ui-btn-primary">
+            Open Interactive Briefing &amp; Voice Studio ({{ latest_briefing.signal_count }} Signals) &rarr;
         </a>
     </div>
 
     {% if latest_briefing.metrics_json %}
     <div class="briefing-metrics-grid">
         {% for m in latest_briefing.metrics_json|slice:":6" %}
-        <div class="briefing-metric-box">
+        <div class="ui-surface briefing-metric-box">
             <div class="briefing-metric-val">{{ m.value }}</div>
             <div class="briefing-metric-desc">{{ m.desc }}</div>
         </div>

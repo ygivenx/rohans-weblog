@@ -1,6 +1,11 @@
 {% extends 'blog/base.html' %}
+{% load static %}
 
 {% block title %}{{ digest.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'blog/digest_motion.css' %}">
+{% endblock %}
 
 {% block content %}
 <article>
@@ -28,5 +33,7 @@
     {% endif %}
 </article>
 
-<p style="margin-top: 30px;"><a href="{{ digest.series.get_absolute_url }}">&larr; Back to {{ digest.series.name }}</a></p>
+<p class="back-link"><a href="{{ digest.series.get_absolute_url }}">&larr; Back to {{ digest.series.name }}</a></p>
+
+<script defer src="{% static 'blog/digest_motion.js' %}"></script>
 {% endblock %}
