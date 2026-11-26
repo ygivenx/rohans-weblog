@@ -15,39 +15,41 @@
     }
     .about-grid {
         display: grid;
-        grid-template-columns: 140px 1fr;
-        gap: 20px;
+        grid-template-columns: 148px 1fr;
+        gap: 26px;
         align-items: start;
-        margin-bottom: 26px;
+        margin-bottom: 30px;
     }
     .about-avatar {
-        width: 128px;
-        height: 128px;
-        border-radius: var(--radius-lg);
+        width: 136px;
+        height: 136px;
+        padding: 4px;
+        background: var(--card);
+        border-radius: var(--radius-sm);
         object-fit: cover;
-        border: 1px solid var(--border-soft);
+        border: 1px solid var(--border);
+        margin: 0 !important;
     }
     .about-meta {
-        font-family: var(--font-sans);
-        font-size: 0.78em;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 0.86rem;
         color: var(--subtle-foreground);
         margin-top: 10px;
     }
     .about-section {
-        margin: 28px 0;
-        padding-top: 14px;
+        margin: 32px 0;
+        padding-top: 18px;
         border-top: 1px solid var(--border-soft);
     }
     .about-section h3 {
-        font-family: var(--font-sans);
-        font-size: 0.8em;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--subtle-foreground);
-        margin-bottom: 12px;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 1.08rem;
+        font-weight: 400;
+        color: var(--muted-foreground);
+        margin-top: 0;
+        margin-bottom: 14px;
     }
     .about-list {
         list-style: none;
@@ -55,19 +57,17 @@
         padding: 0;
     }
     .about-list li {
-        padding: 8px 0;
-        border-bottom: 1px dotted var(--border-soft);
+        padding: 9px 0;
+        border-bottom: 1px dotted var(--border);
     }
     .about-list li:last-child {
         border-bottom: 0;
     }
     .about-list .label {
         font-family: var(--font-sans);
-        font-size: 0.83em;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        font-size: 0.82rem;
         color: var(--subtle-foreground);
-        margin-right: 8px;
+        margin-right: 10px;
     }
     .about-closing {
         margin-top: 24px;

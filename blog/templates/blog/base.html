@@ -5,9 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rohan Singh's Weblog{% endblock %}</title>
+    <script>
+        (() => {
+            try {
+                const saved = localStorage.getItem('weblog-theme');
+                if (saved === 'light' || saved === 'dark') {
+                    document.documentElement.dataset.theme = saved;
+                }
+            } catch {}
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32x32.png' %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'icons/favicon-16x16.png' %}">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}">
@@ -15,40 +25,156 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="secession-frieze" aria-hidden="true"></div>
+
     <div class="container">
-        <header>
-            <h1><a href="{% url 'blog:index' %}">Rohan Singh's Weblog</a></h1>
-            <div class="site-description">Writing about software, data science, and things I learn along the way.</div>
+        <header class="site-header">
+            <div class="site-brand">
+                <a href="{% url 'blog:index' %}" class="site-emblem" aria-label="Rohan Singh's Weblog home">
+                    <!-- Naturalist etching of a seated hare (homage to Durer's Young Hare)
+                         within a Vienna Secessionist gilded medallion (homage to Gustav Klimt) -->
+                    <svg viewBox="0 0 72 72" width="52" height="52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <!-- Outer gilded double medallion & Klimt geometric studs -->
+                        <circle cx="36" cy="36" r="33.5" stroke="var(--gold-hairline)" stroke-width="1"/>
+                        <circle cx="36" cy="36" r="30.2" stroke="currentColor" stroke-width="0.6" stroke-opacity="0.32" stroke-dasharray="1.5 2.5"/>
+                        <rect x="34.5" y="1" width="3" height="3" fill="var(--gold-hairline)" transform="rotate(45 36 2.5)"/>
+                        <rect x="34.5" y="68" width="3" height="3" fill="var(--gold-hairline)" transform="rotate(45 36 69.5)"/>
+                        <rect x="1" y="34.5" width="3" height="3" fill="var(--gold-hairline)" transform="rotate(45 2.5 36)"/>
+                        <rect x="68" y="34.5" width="3" height="3" fill="var(--gold-hairline)" transform="rotate(45 69.5 36)"/>
+
+                        <!-- Klimt-inspired gilded spiral & mosaic halo behind the hare -->
+                        <path d="M51 22 C54 22, 56 24.2, 55.5 27 C55 29.3, 52.5 30.2, 50.8 28.8 C49.6 27.8, 50 26, 51.4 25.8" stroke="var(--gold-hairline)" stroke-width="0.95" stroke-linecap="round"/>
+                        <rect x="15.5" y="21" width="2.4" height="2.4" stroke="var(--gold-hairline)" stroke-width="0.85"/>
+                        <circle cx="53.5" cy="34.5" r="1.3" fill="var(--gold-hairline)"/>
+                        <circle cx="17.5" cy="31" r="1" fill="var(--gold-hairline)" fill-opacity="0.75"/>
+
+                        <!-- Seated Hare — fine pen-and-ink profile -->
+                        <!-- Far ear & near ear with inner hairline -->
+                        <path d="M29.5 24.5 C27 17.5, 27.2 12.5, 29.8 11 C31.6 10.2, 33 14.2, 32.8 22.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M32.5 23.8 C32.2 16.5, 34 11.2, 36.8 10.8 C38.8 10.5, 39.2 15.8, 36.8 24.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M35.4 13.8 C35.8 16.5, 35.4 19.5, 34.4 22.2" stroke="currentColor" stroke-width="0.7" stroke-opacity="0.55" stroke-linecap="round"/>
+
+                        <!-- Head, muzzle, cheek & alert eye -->
+                        <path d="M29.5 24.5 C26.2 25.2, 23 27.6, 21.8 30.2 C21.2 31.6, 22.2 33.2, 24.2 33.6 C26.4 34, 28.5 33.5, 30.2 34.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="27.4" cy="28.6" r="1.25" fill="currentColor"/>
+                        <circle cx="27.1" cy="28.2" r="0.38" fill="var(--background)"/>
+                        <!-- Delicate whiskers -->
+                        <path d="M22.2 31.8 L17.6 31.2 M22.4 32.8 L18.2 33.6" stroke="currentColor" stroke-width="0.65" stroke-opacity="0.6" stroke-linecap="round"/>
+
+                        <!-- Arched back, haunch & soft tail -->
+                        <path d="M36.8 24.5 C42.8 26.8, 49.2 32.5, 50.4 40.8 C51 45, 49.4 48.6, 46.2 50.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M50.3 43.2 C52.8 43, 54.4 44.8, 53.6 47.2 C52.8 49.2, 50.4 49.8, 48.4 49.4" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"/>
+
+                        <!-- Chest, foreleg & seated hind leg -->
+                        <path d="M28.6 34.2 C27.2 38.2, 26.6 43.2, 26.2 48.4 C26 50.2, 24.2 50.6, 23.2 50.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M31.6 38.8 C30.8 43.2, 30.2 47.4, 29.8 50.8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                        <path d="M44.5 39.2 C40.5 39.6, 37.8 43.4, 38.2 47.6 C38.5 49.8, 35.8 50.8, 32.6 50.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+
+                        <!-- Durer-style fine fur cross-hatching -->
+                        <path d="M38.5 29.2 C40.5 30.4, 42.2 32.2, 43.4 34.4" stroke="currentColor" stroke-width="0.65" stroke-opacity="0.48" stroke-linecap="round"/>
+                        <path d="M36.2 31.2 C38.2 32.5, 39.8 34.2, 40.8 36.2" stroke="currentColor" stroke-width="0.65" stroke-opacity="0.42" stroke-linecap="round"/>
+                        <path d="M43.2 33.4 C45 35.2, 46.2 37.4, 46.8 39.8" stroke="currentColor" stroke-width="0.65" stroke-opacity="0.45" stroke-linecap="round"/>
+                        <path d="M42.8 43.2 C44.5 44.2, 45.6 45.8, 46 47.6" stroke="currentColor" stroke-width="0.65" stroke-opacity="0.42" stroke-linecap="round"/>
+
+                        <!-- Ground line & delicate meadow blades -->
+                        <path d="M16.5 51.4 H55.5" stroke="currentColor" stroke-width="0.95" stroke-linecap="round" stroke-opacity="0.6"/>
+                        <path d="M22.5 54.6 H49.5" stroke="var(--gold-hairline)" stroke-width="0.8" stroke-linecap="round" stroke-opacity="0.75"/>
+                        <path d="M19.5 51.2 C19.2 48.8, 18.2 47, 17 45.8 M21.4 51.2 C21.8 49, 22.6 47.8, 23.4 47" stroke="currentColor" stroke-width="0.75" stroke-opacity="0.55" stroke-linecap="round"/>
+                        <path d="M52.2 51.2 C52.8 49, 53.8 47.4, 55 46.5" stroke="currentColor" stroke-width="0.75" stroke-opacity="0.55" stroke-linecap="round"/>
+                    </svg>
+                </a>
+                <div class="site-brand-text">
+                    <h1><a href="{% url 'blog:index' %}">Rohan Singh&rsquo;s Weblog</a></h1>
+                    <div class="site-description">Software, data science, and notes from Seattle.</div>
+                </div>
+            </div>
             {% with rm=request.resolver_match %}
-            <nav aria-label="Primary">
-                <a href="{% url 'blog:index' %}"{% if rm.url_name == 'index' or rm.url_name == 'feed_detail' %} aria-current="page"{% endif %}>Feed</a>
-                <a href="{% url 'blog:digest_index' %}"{% if rm.url_name == 'digest_index' or rm.url_name == 'digest_series' or rm.url_name == 'digest_detail' or rm.url_name == 'briefing_list' or rm.url_name == 'briefing_archive' %} aria-current="page"{% endif %}>Digests</a>
-                <a href="{% url 'blog:products_list' %}"{% if rm.url_name == 'products_list' %} aria-current="page"{% endif %}>Products</a>
-                <a href="{% url 'hackerstack:index' %}"{% if rm.app_name == 'hackerstack' %} aria-current="page"{% endif %}>HackerStack</a>
-                <a href="{% url 'blog:post_list' %}"{% if rm.url_name == 'post_list' or rm.url_name == 'post_detail' %} aria-current="page"{% endif %}>Writing</a>
-                <a href="{% url 'blog:til_list' %}"{% if rm.url_name == 'til_list' or rm.url_name == 'til_detail' %} aria-current="page"{% endif %}>TIL</a>
-                <a href="{% url 'blog:about' %}"{% if rm.url_name == 'about' %} aria-current="page"{% endif %}>About</a>
-            </nav>
+            <div class="header-controls">
+                <nav aria-label="Primary">
+                    <a href="{% url 'blog:index' %}"{% if rm.url_name == 'index' or rm.url_name == 'feed_detail' %} aria-current="page"{% endif %}>Feed</a>
+                    <a href="{% url 'blog:post_list' %}"{% if rm.url_name == 'post_list' or rm.url_name == 'post_detail' %} aria-current="page"{% endif %}>Writing</a>
+                    <a href="{% url 'blog:digest_index' %}"{% if rm.url_name == 'digest_index' or rm.url_name == 'digest_series' or rm.url_name == 'digest_detail' or rm.url_name == 'briefing_list' or rm.url_name == 'briefing_archive' %} aria-current="page"{% endif %}>Digests</a>
+                    <a href="{% url 'blog:til_list' %}"{% if rm.url_name == 'til_list' or rm.url_name == 'til_detail' %} aria-current="page"{% endif %}>TIL</a>
+                    <a href="{% url 'blog:products_list' %}"{% if rm.url_name == 'products_list' %} aria-current="page"{% endif %}>Products</a>
+                    <a href="{% url 'hackerstack:index' %}"{% if rm.app_name == 'hackerstack' %} aria-current="page"{% endif %}>HackerStack</a>
+                    <a href="{% url 'blog:about' %}"{% if rm.url_name == 'about' %} aria-current="page"{% endif %}>About</a>
+                </nav>
+                <button type="button" class="theme-toggle js-theme-toggle" aria-label="Switch color theme" title="Switch light / dark theme">
+                    <svg class="icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                    </svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+            </div>
             {% endwith %}
-        {% if all_tags %}
-        <div class="tag-bar">
-            {% for tag in all_tags %}
-                <a href="{% url 'blog:tag_detail' tag.slug %}">{{ tag.name }}<span class="tag-count">{{ tag.total_count }}</span></a>
-            {% endfor %}
-        </div>
-        {% endif %}
         </header>
 
-        <main>
+        <main id="main-content" tabindex="-1">
             {% block content %}{% endblock %}
         </main>
 
+        {% if all_tags %}
+        <section class="tag-index" aria-label="Topics">
+            <div class="tag-index-label">Index of topics</div>
+            <div class="tag-bar">
+                {% for tag in all_tags %}
+                    <a href="{% url 'blog:tag_detail' tag.slug %}">{{ tag.name }}<span class="tag-count">{{ tag.total_count }}</span></a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
         <footer>
-            <p>&copy; {% now "Y" %} Rohan Singh &middot; Generated with ❤️ from Seattle, WA &middot; <a href="{% url 'blog:about' %}#work-with-me">Work with me</a> &middot; <a href="{% url 'blog:briefing_latest' %}">Today's Briefing</a> &middot; <a href="{% url 'blog:search' %}">Search</a></p>
+            <div class="footer-ornament" aria-hidden="true">
+                <svg viewBox="0 0 120 14" width="108" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="0" y1="7" x2="43" y2="7" stroke="var(--border)" stroke-width="0.9"/>
+                    <rect x="48" y="5.5" width="3" height="3" stroke="var(--gold-hairline)" stroke-width="0.9"/>
+                    <rect x="57.5" y="4.5" width="5" height="5" fill="var(--gold-hairline)" transform="rotate(45 60 7)"/>
+                    <rect x="69" y="5.5" width="3" height="3" stroke="var(--gold-hairline)" stroke-width="0.9"/>
+                    <line x1="77" y1="7" x2="120" y2="7" stroke="var(--border)" stroke-width="0.9"/>
+                </svg>
+            </div>
+            <p>&copy; {% now "Y" %} Rohan Singh &middot; Crafted in Seattle, WA &middot; <a href="{% url 'blog:about' %}#work-with-me">Work with me</a> &middot; <a href="{% url 'blog:briefing_latest' %}">Today&rsquo;s Briefing</a> &middot; <a href="{% url 'blog:search' %}">Search</a></p>
         </footer>
     </div>
     <script>
         (() => {
+            // Light / dark theme switcher (persisted in localStorage, respects OS preference by default)
+            const root = document.documentElement;
+            const toggle = document.querySelector('.js-theme-toggle');
+            const mql = window.matchMedia('(prefers-color-scheme: dark)');
+
+            const effectiveTheme = () => {
+                if (root.dataset.theme === 'dark' || root.dataset.theme === 'light') {
+                    return root.dataset.theme;
+                }
+                return mql.matches ? 'dark' : 'light';
+            };
+
+            const syncToggle = () => {
+                if (!toggle) return;
+                const isDark = effectiveTheme() === 'dark';
+                toggle.setAttribute('aria-pressed', String(isDark));
+                toggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+                toggle.setAttribute('title', isDark ? 'Switch to light (vellum) theme' : 'Switch to dark (obsidian) theme');
+            };
+
+            if (toggle) {
+                syncToggle();
+                toggle.addEventListener('click', () => {
+                    const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+                    root.dataset.theme = next;
+                    try { localStorage.setItem('weblog-theme', next); } catch {}
+                    syncToggle();
+                });
+                mql.addEventListener?.('change', syncToggle);
+            }
+
+            // Code block copy buttons
             document.querySelectorAll('.content pre').forEach((pre) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'code-block-wrap';
