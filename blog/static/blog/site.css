@@ -17,51 +17,54 @@
     --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
 
-    /* Semantic palette — Warm Vellum, Iron-Gall Ink, Lapis & Antique Gold (Light) */
-    --background: #faf7f0;
-    --foreground: #1b1713;
-    --ink: #221d17;
-    --card: #fffdf9;
-    --card-foreground: #1b1713;
-    --muted: #f2ede2;
-    --muted-foreground: #544d44;
-    --subtle-foreground: #6b6358;
-    --faint-foreground: #736b5f;
+    /* Semantic palette — Crisp Arches Cotton Paper, Sumi Ink, Lapis & Klimt Gold (Light) */
+    --background: #fcfcfb;
+    --foreground: #171614;
+    --ink: #1b1916;
+    --card: #ffffff;
+    --card-foreground: #171614;
+    --muted: #f5f4f0;
+    --muted-foreground: #504d47;
+    --subtle-foreground: #68645d;
+    --faint-foreground: #706c64;
 
-    --primary: #1a4772;
-    --primary-hover: #0f2f4f;
-    --primary-foreground: #faf7f0;
+    --primary: #1a4b7c;
+    --primary-hover: #0e3154;
+    --primary-foreground: #fcfcfb;
 
-    --gold: #8c6820;
-    --gold-hairline: #c49f50;
-    --gold-soft: rgba(196, 159, 80, 0.14);
+    --gold: #8a661d;
+    --gold-hairline: #c69f48;
+    --gold-soft: rgba(198, 159, 72, 0.14);
     --accent-warm: #a6432c;
 
-    --secondary: #efe9dc;
-    --secondary-hover: #e5dece;
-    --secondary-foreground: #1b1713;
+    --secondary: #f2f1ec;
+    --secondary-hover: #e8e6de;
+    --secondary-foreground: #171614;
 
-    --border: #dad2c3;
-    --border-soft: #e8e1d4;
-    --input: #cbc2b1;
-    --ring: #1a4772;
+    --border: #dfddd6;
+    --border-soft: #eceae4;
+    --input: #cfccc3;
+    --ring: #1a4b7c;
 
     --positive: #1f633f;
     --negative: #a83326;
 
     /* Code & tables */
-    --code-bg: #1c1916;
-    --code-border: #312c26;
-    --code-text: #ebe5d8;
-    --inline-code-bg: #efeae0;
-    --inline-code-text: #2a241e;
-    --table-border: #ded6c8;
-    --table-head: #f3eee3;
-    --table-zebra: #f8f4ec;
-    --copy-btn-border: #585046;
-    --copy-btn-bg: #2a2621;
-    --copy-btn-bg-hover: #38332c;
-    --copy-btn-text: #f0eae0;
+    --code-bg: #181715;
+    --code-border: #2e2c28;
+    --code-text: #ece8df;
+    --inline-code-bg: #f2f1ec;
+    --inline-code-text: #262420;
+    --table-border: #e1dfd8;
+    --table-head: #f6f5f1;
+    --table-zebra: #faf9f6;
+    --copy-btn-border: #555148;
+    --copy-btn-bg: #272521;
+    --copy-btn-bg-hover: #35322c;
+    --copy-btn-text: #f2eee6;
+
+    /* Paper grain opacity */
+    --paper-grain-opacity: 0.032;
 
     /* Shape, elevation & layout */
     --radius-sm: 3px;
@@ -201,15 +204,43 @@
     }
 
     body {
+        position: relative;
         font-family: var(--font-serif);
         font-optical-sizing: auto;
         line-height: 1.72;
         color: var(--foreground);
-        background: var(--background);
+        background-color: var(--background);
+        border-top: 4px solid var(--ink);
+        /* Crisp archival cotton-rag paper sheen */
+        background-image:
+            radial-gradient(ellipse 120% 80% at 50% 0%, rgba(255, 255, 255, 0.6) 0%, transparent 65%);
         font-size: 18.5px;
         font-weight: 400;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Authentic fine-tooth archival cotton paper grain overlay */
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 90;
+        opacity: var(--paper-grain-opacity, 0.032);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23p)'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+        background-size: 220px 220px;
+    }
+
+    :root[data-theme="dark"] body {
+        background-image: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) body {
+            background-image: none;
+        }
     }
 
     /* Skip link for keyboard accessibility */
@@ -232,14 +263,6 @@
     .skip-link:focus {
         top: 12px;
         text-decoration: none;
-    }
-
-    /* Restrained Vienna Secessionist top frieze: ink rule + antique gold hairline */
-    .secession-frieze {
-        height: 4px;
-        background: var(--ink);
-        border-bottom: 1px solid var(--gold-hairline);
-        box-shadow: 0 2px 0 var(--background), 0 3px 0 var(--gold-soft);
     }
 
     ::selection {
@@ -297,15 +320,44 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: var(--foreground);
         flex-shrink: 0;
-        border-radius: 50%;
-        transition: transform 0.3s ease, opacity 0.2s ease;
+        transition: transform 0.3s ease;
+    }
+
+    .site-emblem-img {
+        display: block;
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        border-radius: 0;
+        /* Pure white paper background melts seamlessly into cotton-rag paper */
+        mix-blend-mode: multiply;
+    }
+
+    /* In dark obsidian studio mode, display as a crisp rectangular archival plate */
+    :root[data-theme="dark"] .site-emblem-img {
+        mix-blend-mode: normal;
+        background: #f8f6f1;
+        padding: 3px;
+        border-radius: 2px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-plate);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) .site-emblem-img {
+            mix-blend-mode: normal;
+            background: #f8f6f1;
+            padding: 3px;
+            border-radius: 2px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-plate);
+        }
     }
 
     .site-emblem:hover {
         text-decoration: none;
-        transform: scale(1.03);
+        transform: scale(1.04);
     }
 
     .site-brand-text {
@@ -379,10 +431,11 @@
     header nav a[aria-current="page"]::after {
         content: "";
         position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 1px;
-        height: 1.5px;
+        left: 50%;
+        bottom: 0;
+        width: 4px;
+        height: 4px;
+        transform: translateX(-50%) rotate(45deg);
         background: var(--gold-hairline);
     }
 
@@ -458,7 +511,7 @@
         text-align: center;
     }
 
-    .footer-ornament {
+    .footer-vignette {
         display: flex;
         justify-content: center;
         margin-bottom: 16px;
@@ -563,7 +616,9 @@
     .content ul, .content ol { margin: 1.1em 0; padding-left: 1.75em; }
     .content li { margin: 0.44em 0; }
     .content ul { list-style-type: disc; }
+    .content ul li::marker { color: var(--gold-hairline); }
     .content ol { list-style-type: decimal; }
+    .content ol li::marker { color: var(--subtle-foreground); }
     .content ul ul, .content ol ol, .content ul ol, .content ol ul {
         margin-top: 0.3em;
         margin-bottom: 0.3em;
@@ -721,6 +776,16 @@
         user-select: none;
     }
 
+    /* Subtle end-of-essay colophon mark */
+    .essay-endmark {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 34px 0 8px;
+        color: var(--gold-hairline);
+        user-select: none;
+    }
+
     @media (max-width: 640px) {
         .container {
             padding: 0 18px 40px;
@@ -748,7 +813,8 @@
             color: #111111;
             font-size: 11pt;
         }
-        .secession-frieze,
+        .footer-vignette,
+        body::before,
         .skip-link,
         .theme-toggle,
         header nav,
@@ -843,26 +909,26 @@
         border-color: var(--gold-hairline);
     }
 
-    /* Surfaces & cards */
+    /* Surfaces & cards — light editorial hairlines, no heavy boxes */
     .ui-surface {
-        background: var(--muted);
-        border: 1px solid var(--border-soft);
-        border-radius: var(--radius);
-        padding: 16px 18px;
+        background: transparent;
+        border: none;
+        border-top: 1px solid var(--border-soft);
+        border-bottom: 1px solid var(--border-soft);
+        border-radius: 0;
+        padding: 20px 0;
     }
 
     .ui-card {
         background: var(--card);
         color: var(--card-foreground);
         border: 1px solid var(--border-soft);
-        border-top: 2px solid var(--gold-hairline);
-        border-radius: var(--radius);
+        border-radius: var(--radius-sm);
         padding: 20px 22px;
-        box-shadow: var(--shadow-plate);
     }
 
     .ui-card-accent {
-        border-top: 2px solid var(--gold-hairline);
+        border-color: var(--border);
     }
 
     /* Pills & badges */
@@ -1124,35 +1190,74 @@
         color: var(--gold);
     }
 
-    /* Subscribe, Sponsor, & Product Callout components */
+    /* Subscribe, Sponsor, & Product Callout components — crisp editorial lines on paper */
     .subscribe-box {
-        margin: 30px 0;
+        margin: 34px 0;
+        padding: 22px 0;
+        background: transparent;
+        border: none;
+        border-top: 1px solid var(--border-soft);
+        border-bottom: 1px solid var(--border-soft);
+        border-radius: 0;
         font-family: var(--font-sans);
-        border-top: 2px solid var(--gold-hairline);
     }
 
     .subscribe-title {
         font-family: var(--font-serif);
-        font-size: 1.08rem;
-        font-weight: 500;
+        font-size: 1.15rem;
+        font-weight: 400;
         color: var(--foreground);
         margin-bottom: 4px;
     }
 
     .subscribe-copy {
-        font-size: 0.84rem;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 0.94rem;
         color: var(--muted-foreground);
-        margin-bottom: 12px;
+        margin-bottom: 16px;
     }
 
     .subscribe-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        align-items: flex-end;
+        gap: 10px 14px;
     }
 
     .subscribe-row .ui-input {
         flex: 1 1 220px;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        padding: 8px 2px;
+        font-family: var(--font-serif);
+        font-size: 0.96rem;
+    }
+
+    .subscribe-row .ui-input:hover {
+        border-bottom-color: var(--subtle-foreground);
+    }
+
+    .subscribe-row .ui-input:focus {
+        outline: none;
+        border-bottom-color: var(--foreground);
+    }
+
+    .subscribe-row .ui-btn-primary {
+        background: transparent;
+        border: 1px solid var(--foreground);
+        color: var(--foreground);
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+        padding: 7px 18px;
+    }
+
+    .subscribe-row .ui-btn-primary:hover {
+        background: var(--foreground);
+        border-color: var(--foreground);
+        color: var(--background);
     }
 
     .subscribe-status {

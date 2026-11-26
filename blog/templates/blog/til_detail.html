@@ -19,6 +19,15 @@
     <div class="content">
         {{ til.content_html|safe }}
     </div>
+
+    <div class="essay-endmark" aria-hidden="true">
+        <svg viewBox="0 0 44 14" width="44" height="14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="5.5" width="3" height="3" stroke="currentColor" stroke-width="0.9"/>
+            <circle cx="22" cy="7" r="4.5" stroke="currentColor" stroke-width="0.9"/>
+            <rect x="20.5" y="5.5" width="3" height="3" fill="currentColor" transform="rotate(45 22 7)"/>
+            <rect x="38" y="5.5" width="3" height="3" stroke="currentColor" stroke-width="0.9"/>
+        </svg>
+    </div>
 </article>
 
 {% include 'blog/_product_callout.html' %}
