@@ -12,9 +12,9 @@
 :root {
     color-scheme: light;
 
-    /* Typography */
-    --font-serif: 'Newsreader', Georgia, 'Iowan Old Style', 'Times New Roman', serif;
-    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    /* Typography — crisp modern sans for stress-free reading, modern editorial serif for display */
+    --font-serif: 'Fraunces', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
 
     /* Semantic palette — Gustav Klimt "Church in Cassone" (1913)
@@ -207,19 +207,28 @@
 
     body {
         position: relative;
-        font-family: var(--font-serif);
-        font-optical-sizing: auto;
-        line-height: 1.72;
+        font-family: var(--font-sans);
+        line-height: 1.68;
         color: var(--foreground);
         background-color: var(--background);
         border-top: 4px solid var(--ink);
         /* Crisp archival cotton-rag paper sheen */
         background-image:
             radial-gradient(ellipse 120% 80% at 50% 0%, rgba(255, 255, 255, 0.6) 0%, transparent 65%);
-        font-size: 18.5px;
+        font-size: 16.5px;
         font-weight: 400;
+    }
+
+    :root[data-theme="dark"] body {
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
     }
 
     /* Authentic fine-tooth archival cotton paper grain overlay */
@@ -360,6 +369,7 @@
         font-family: var(--font-serif);
         font-size: 1.55rem;
         font-weight: 400;
+        font-variation-settings: "SOFT" 40, "WONK" 0;
         letter-spacing: -0.02em;
         line-height: 1.15;
     }
@@ -378,7 +388,7 @@
         color: var(--subtle-foreground);
         font-family: var(--font-serif);
         font-style: italic;
-        font-size: 0.88rem;
+        font-size: 0.92rem;
         line-height: 1.35;
     }
 
@@ -466,14 +476,15 @@
     /* Section page titles */
     h2 {
         font-family: var(--font-serif);
-        font-size: 1.9rem;
+        font-size: 1.85rem;
         font-weight: 400;
-        letter-spacing: -0.025em;
-        line-height: 1.2;
+        font-variation-settings: "SOFT" 40, "WONK" 0;
+        letter-spacing: -0.02em;
+        line-height: 1.18;
         color: var(--foreground);
         text-wrap: balance;
         margin-top: 4px;
-        margin-bottom: 26px;
+        margin-bottom: 24px;
     }
 
     /* Quiet topic index above footer */
@@ -521,7 +532,8 @@
         font-family: var(--font-serif);
         font-size: clamp(1.85rem, 4vw, 2.3rem);
         font-weight: 400;
-        letter-spacing: -0.025em;
+        font-variation-settings: "SOFT" 40, "WONK" 0;
+        letter-spacing: -0.02em;
         margin-bottom: 10px;
         line-height: 1.18;
         color: var(--foreground);
@@ -1012,10 +1024,11 @@
     }
 
     .post-title {
-        font-size: 1.25rem;
-        margin-bottom: 4px;
-        font-weight: 400;
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+        font-weight: 500;
         font-family: var(--font-serif);
+        font-variation-settings: "SOFT" 35, "WONK" 0;
         line-height: 1.32;
         letter-spacing: -0.01em;
     }
