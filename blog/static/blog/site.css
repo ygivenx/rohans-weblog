@@ -17,51 +17,53 @@
     --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
 
-    /* Semantic palette — Crisp Arches Cotton Paper, Sumi Ink, Lapis & Klimt Gold (Light) */
-    --background: #fcfcfb;
-    --foreground: #171614;
-    --ink: #1b1916;
+    /* Semantic palette — Gustav Klimt "Church in Cassone" (1913)
+       Sunlit limestone paper, deep cypress ink, Lake Garda cerulean,
+       sunlit ochre roof tiles, olive-moss foliage & terracotta touches (Light) */
+    --background: #f8faf9;
+    --foreground: #1e2926;
+    --ink: #263833;
     --card: #ffffff;
-    --card-foreground: #171614;
-    --muted: #f5f4f0;
-    --muted-foreground: #504d47;
-    --subtle-foreground: #68645d;
-    --faint-foreground: #706c64;
+    --card-foreground: #1e2926;
+    --muted: #eff3f1;
+    --muted-foreground: #4a5a56;
+    --subtle-foreground: #5c6d68;
+    --faint-foreground: #62736e;
 
-    --primary: #1a4b7c;
-    --primary-hover: #0e3154;
-    --primary-foreground: #fcfcfb;
+    --primary: #2c5d7c;
+    --primary-hover: #1c425a;
+    --primary-foreground: #f8faf9;
 
-    --gold: #8a661d;
-    --gold-hairline: #c69f48;
-    --gold-soft: rgba(198, 159, 72, 0.14);
-    --accent-warm: #a6432c;
+    --gold: #846c22;
+    --gold-hairline: #b99e4c;
+    --gold-soft: rgba(185, 158, 76, 0.16);
+    --accent-warm: #b25b38;
 
-    --secondary: #f2f1ec;
-    --secondary-hover: #e8e6de;
-    --secondary-foreground: #171614;
+    --secondary: #ebf0ee;
+    --secondary-hover: #dfe7e4;
+    --secondary-foreground: #1e2926;
 
-    --border: #dfddd6;
-    --border-soft: #eceae4;
-    --input: #cfccc3;
-    --ring: #1a4b7c;
+    --border: #d4ded9;
+    --border-soft: #e5ece9;
+    --input: #c3d0ca;
+    --ring: #2c5d7c;
 
-    --positive: #1f633f;
-    --negative: #a83326;
+    --positive: #3a6b35;
+    --negative: #b24832;
 
     /* Code & tables */
-    --code-bg: #181715;
-    --code-border: #2e2c28;
-    --code-text: #ece8df;
-    --inline-code-bg: #f2f1ec;
-    --inline-code-text: #262420;
-    --table-border: #e1dfd8;
-    --table-head: #f6f5f1;
-    --table-zebra: #faf9f6;
-    --copy-btn-border: #555148;
-    --copy-btn-bg: #272521;
-    --copy-btn-bg-hover: #35322c;
-    --copy-btn-text: #f2eee6;
+    --code-bg: #192320;
+    --code-border: #2a3834;
+    --code-text: #e4ece9;
+    --inline-code-bg: #ecf1ef;
+    --inline-code-text: #22302c;
+    --table-border: #d8e2dd;
+    --table-head: #eff4f2;
+    --table-zebra: #f5f8f7;
+    --copy-btn-border: #485b55;
+    --copy-btn-bg: #24322e;
+    --copy-btn-bg-hover: #30423d;
+    --copy-btn-text: #e9f0ee;
 
     /* Paper grain opacity */
     --paper-grain-opacity: 0.032;
@@ -71,7 +73,7 @@
     --radius: 5px;
     --radius-lg: 8px;
     --radius-pill: 999px;
-    --shadow-plate: 0 1px 3px rgba(27, 23, 19, 0.06), 0 4px 14px rgba(27, 23, 19, 0.03);
+    --shadow-plate: 0 1px 3px rgba(30, 41, 38, 0.06), 0 4px 14px rgba(30, 41, 38, 0.03);
     --container-max: 780px;
 
     /* Legacy token aliases (kept for compatibility) */
@@ -83,106 +85,106 @@
     --muted-3: var(--faint-foreground);
 }
 
-/* Dark theme — Klimt Obsidian & Luminous Antique Gold */
+/* Dark theme — Lake Garda Cypress Dusk & Ochre Gold */
 :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #13110e;
-    --foreground: #ede8dc;
-    --ink: #d6b262;
-    --card: #1a1713;
-    --card-foreground: #ede8dc;
-    --muted: #1e1b16;
-    --muted-foreground: #b8b0a1;
-    --subtle-foreground: #9c9384;
-    --faint-foreground: #857d70;
+    --background: #121817;
+    --foreground: #e6ecea;
+    --ink: #c7ae5c;
+    --card: #18201e;
+    --card-foreground: #e6ecea;
+    --muted: #1c2523;
+    --muted-foreground: #a8b8b3;
+    --subtle-foreground: #8f9f9a;
+    --faint-foreground: #81928c;
 
-    --primary: #8ab8e6;
-    --primary-hover: #b2d2f2;
-    --primary-foreground: #12161b;
+    --primary: #7db4d6;
+    --primary-hover: #a7d0ea;
+    --primary-foreground: #10191f;
 
-    --gold: #d6b262;
-    --gold-hairline: #b89448;
-    --gold-soft: rgba(214, 178, 98, 0.14);
-    --accent-warm: #dc7e65;
+    --gold: #d4bc6a;
+    --gold-hairline: #b99e4c;
+    --gold-soft: rgba(212, 188, 106, 0.15);
+    --accent-warm: #d9825f;
 
-    --secondary: #221f1a;
-    --secondary-hover: #2d2821;
-    --secondary-foreground: #ede8dc;
+    --secondary: #1e2826;
+    --secondary-hover: #283532;
+    --secondary-foreground: #e6ecea;
 
-    --border: #322d25;
-    --border-soft: #25211b;
-    --input: #3e382f;
-    --ring: #d6b262;
+    --border: #2b3835;
+    --border-soft: #202b28;
+    --input: #374743;
+    --ring: #7db4d6;
 
-    --positive: #7ed6a3;
-    --negative: #f08a7e;
+    --positive: #8ec47a;
+    --negative: #eb8a73;
 
-    --code-bg: #0d0c0a;
-    --code-border: #2a2620;
-    --code-text: #e6e0d4;
-    --inline-code-bg: #231f1a;
-    --inline-code-text: #ebe5d8;
-    --table-border: #342f28;
-    --table-head: #1f1c17;
-    --table-zebra: #181612;
-    --copy-btn-border: #524b40;
-    --copy-btn-bg: #211e19;
-    --copy-btn-bg-hover: #302b24;
-    --copy-btn-text: #f0eae0;
+    --code-bg: #0d1211;
+    --code-border: #25302d;
+    --code-text: #e2eae7;
+    --inline-code-bg: #1f2927;
+    --inline-code-text: #e4ece9;
+    --table-border: #2d3b37;
+    --table-head: #1c2523;
+    --table-zebra: #161e1c;
+    --copy-btn-border: #475954;
+    --copy-btn-bg: #1e2826;
+    --copy-btn-bg-hover: #2a3734;
+    --copy-btn-text: #eaf1ef;
 
-    --shadow-plate: 0 2px 6px rgba(0, 0, 0, 0.35);
+    --shadow-plate: 0 2px 6px rgba(0, 0, 0, 0.38);
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
         color-scheme: dark;
 
-        --background: #13110e;
-        --foreground: #ede8dc;
-        --ink: #d6b262;
-        --card: #1a1713;
-        --card-foreground: #ede8dc;
-        --muted: #1e1b16;
-        --muted-foreground: #b8b0a1;
-        --subtle-foreground: #9c9384;
-        --faint-foreground: #857d70;
+        --background: #121817;
+        --foreground: #e6ecea;
+        --ink: #c7ae5c;
+        --card: #18201e;
+        --card-foreground: #e6ecea;
+        --muted: #1c2523;
+        --muted-foreground: #a8b8b3;
+        --subtle-foreground: #8f9f9a;
+        --faint-foreground: #81928c;
 
-        --primary: #8ab8e6;
-        --primary-hover: #b2d2f2;
-        --primary-foreground: #12161b;
+        --primary: #7db4d6;
+        --primary-hover: #a7d0ea;
+        --primary-foreground: #10191f;
 
-        --gold: #d6b262;
-        --gold-hairline: #b89448;
-        --gold-soft: rgba(214, 178, 98, 0.14);
-        --accent-warm: #dc7e65;
+        --gold: #d4bc6a;
+        --gold-hairline: #b99e4c;
+        --gold-soft: rgba(212, 188, 106, 0.15);
+        --accent-warm: #d9825f;
 
-        --secondary: #221f1a;
-        --secondary-hover: #2d2821;
-        --secondary-foreground: #ede8dc;
+        --secondary: #1e2826;
+        --secondary-hover: #283532;
+        --secondary-foreground: #e6ecea;
 
-        --border: #322d25;
-        --border-soft: #25211b;
-        --input: #3e382f;
-        --ring: #d6b262;
+        --border: #2b3835;
+        --border-soft: #202b28;
+        --input: #374743;
+        --ring: #7db4d6;
 
-        --positive: #7ed6a3;
-        --negative: #f08a7e;
+        --positive: #8ec47a;
+        --negative: #eb8a73;
 
-        --code-bg: #0d0c0a;
-        --code-border: #2a2620;
-        --code-text: #e6e0d4;
-        --inline-code-bg: #231f1a;
-        --inline-code-text: #ebe5d8;
-        --table-border: #342f28;
-        --table-head: #1f1c17;
-        --table-zebra: #181612;
-        --copy-btn-border: #524b40;
-        --copy-btn-bg: #211e19;
-        --copy-btn-bg-hover: #302b24;
-        --copy-btn-text: #f0eae0;
+        --code-bg: #0d1211;
+        --code-border: #25302d;
+        --code-text: #e2eae7;
+        --inline-code-bg: #1f2927;
+        --inline-code-text: #e4ece9;
+        --table-border: #2d3b37;
+        --table-head: #1c2523;
+        --table-zebra: #161e1c;
+        --copy-btn-border: #475954;
+        --copy-btn-bg: #1e2826;
+        --copy-btn-bg-hover: #2a3734;
+        --copy-btn-text: #eaf1ef;
 
-        --shadow-plate: 0 2px 6px rgba(0, 0, 0, 0.35);
+        --shadow-plate: 0 2px 6px rgba(0, 0, 0, 0.38);
     }
 }
 
@@ -330,28 +332,16 @@
         height: 60px;
         object-fit: contain;
         border-radius: 0;
-        /* Pure white paper background melts seamlessly into cotton-rag paper */
-        mix-blend-mode: multiply;
     }
 
-    /* In dark obsidian studio mode, display as a crisp rectangular archival plate */
+    /* In dark obsidian studio mode, float the transparent art cleanly with a subtle warm lift */
     :root[data-theme="dark"] .site-emblem-img {
-        mix-blend-mode: normal;
-        background: #f8f6f1;
-        padding: 3px;
-        border-radius: 2px;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-plate);
+        filter: brightness(1.16) contrast(1.04) drop-shadow(0 0 10px rgba(214, 178, 98, 0.14));
     }
 
     @media (prefers-color-scheme: dark) {
         :root:not([data-theme="light"]) .site-emblem-img {
-            mix-blend-mode: normal;
-            background: #f8f6f1;
-            padding: 3px;
-            border-radius: 2px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-plate);
+            filter: brightness(1.16) contrast(1.04) drop-shadow(0 0 10px rgba(214, 178, 98, 0.14));
         }
     }
 
